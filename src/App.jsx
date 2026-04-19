@@ -24,7 +24,7 @@ export default function App() {
   });
 
   const [researchData, setResearchData] = useState({
-    judul: '', babContent: ''
+    judul: '', babContent: '', teknik: 'Observasi (Pengamatan)'
   });
 
   const [variabelData, setVariabelData] = useState([]);
@@ -43,7 +43,8 @@ export default function App() {
     });
     setResearchData({
       judul: 'Analisis Stratifikasi Vegetasi di Hutan Lindung Gunung Patuha',
-      babContent: 'Penelitian ini akan mengukur parameter lingkungan biotik secara langsung.'
+      babContent: 'Penelitian ini akan mengukur parameter lingkungan biotik secara langsung.',
+      teknik: 'Observasi (Pengamatan)'
     });
   };
 
@@ -51,6 +52,7 @@ export default function App() {
 Anda adalah seorang Ahli Metodologi Penelitian Lapangan Teknis.
 Berdasarkan parameter skripsi di bawah ini:
 Judul Skripsi: "{judul}"
+Teknik Pengambilan Data: "{teknik}"
 Konteks Alat / Tambahan: "{konteks}"
 Program Studi Mahasiswa: "{prodi}"
 
@@ -275,6 +277,7 @@ ${coverText}`;
       let detail;
       const prompt = PROMPT_TEMPLATE
           .replace('{judul}', currentJudul)
+          .replace('{teknik}', researchData.teknik || 'Observasi (Pengamatan)')
           .replace('{konteks}', currentKonteks)
           .replace('{prodi}', currentProfile.prodi);
 
@@ -594,6 +597,24 @@ ${coverText}`;
                  <div className="space-y-3">
                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Judul Topik Observasi</label>
                    <textarea className="w-full p-5 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-[#0ea5e9] transition-all font-black text-xl text-slate-800 leading-tight outline-none" rows="2" placeholder="Analisis Morfologi..." value={researchData.judul} onChange={e => setResearchData({...researchData, judul: e.target.value})} />
+                 </div>
+                 
+                 <div className="space-y-3 pt-2">
+                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Teknik Pengambilan Data</label>
+                   <div className="relative">
+                     <select 
+                        className="w-full p-5 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-[#0ea5e9] transition-all font-bold text-slate-800 outline-none appearance-none cursor-pointer shadow-sm"
+                        value={researchData.teknik || 'Observasi (Pengamatan)'}
+                        onChange={e => setResearchData({...researchData, teknik: e.target.value})}
+                     >
+                        <option value="Observasi (Pengamatan)">Observasi (Pengamatan)</option>
+                        <option value="Wawancara (Interview)">Wawancara (Interview)</option>
+                        <option value="Kuesioner (Angket)">Kuesioner (Angket)</option>
+                        <option value="Studi Dokumentasi">Studi Dokumentasi</option>
+                        <option value="Eksperimen">Eksperimen</option>
+                     </select>
+                     <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
+                   </div>
                  </div>
                </div>
 
