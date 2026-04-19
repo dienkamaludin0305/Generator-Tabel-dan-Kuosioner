@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
   Database, ArrowRight, Loader2, Table2, Wand2, UploadCloud, Download,
-  ListChecks, Plus, Trash2, LayoutDashboard, ChevronRight, Info, Sparkles, AlertCircle,
+  ListChecks, Plus, Trash2, LayoutDashboard, ChevronRight, ChevronDown, Info, Sparkles, AlertCircle,
   User, CheckCircle2, Map, Bell, BookOpen, Target, LayoutTemplate, FileSpreadsheet
 } from 'lucide-react';
 import { GoogleGenerativeAI } from '@google/generative-ai';
