@@ -60,6 +60,7 @@ Tugas:
 4. Setiap parameter WAJIB mencantumkan Satuan / Catatan Validasi teknis di lapangan.
 5. Siapkan juga struktur header Tabel Primer dan berikan 3 sampel mock-data pengisian observasi.
 6. Untuk SETIAP dimensi dan item parameter, WAJIB definisikan array \`lampiranHeaders\` berisi judul kolom spesifik untuk formulir lampiran. **Jumlah kolom BEBAS** sesuai kerumitan data (misal butuh 5 kolom: ["Titik", "Utara", "Timur", "Selatan", "Barat"]). JANGAN gunakan header generik!
+7. Untuk SETIAP dimensi dan item parameter, WAJIB definisikan string \`lampiranInstruksi\` yang berisi SATU kalimat metodologi ringkas (SOP) tentang "bagaimana cara mengukur/mengobservasi" parameter tersebut di lapangan.
 
 WAJIB KEMBALIKAN HANYA OBJEK JSON MURNI YANG VALID. DILARANG MEMBERIKAN TEKS PENDAHULUAN ATAU BACKTICKS:
 {
@@ -69,10 +70,11 @@ WAJIB KEMBALIKAN HANYA OBJEK JSON MURNI YANG VALID. DILARANG MEMBERIKAN TEKS PEN
   "observasi": [
     {
       "dimensi": "Dimensi Profil Kanopi",
+      "lampiranInstruksi": "Gunakan densiometer pada 4 arah mata angin di setiap plot dan catat persentasenya rata-rata.",
       "lampiranHeaders": ["Lokasi Titik", "Kuadran Utara", "Kuadran Timur", "Kuadran Selatan", "Kuadran Barat", "Catatan Keseluruhan"],
       "items": [
-        { "id": "p1", "parameter": "Tutupan Tajuk", "satuan": "%", "lampiranHeaders": ["Sektor Titik", "Skor A", "Skor B", "Catatan Khusus"] },
-        { "id": "p2", "parameter": "Tinggi Dominan", "satuan": "m", "lampiranHeaders": ["Spesies", "Jarak", "Sudut Puncak", "Sudut Pangkal", "Estimasi (m)"] }
+        { "id": "p1", "parameter": "Tutupan Tajuk", "satuan": "%", "lampiranInstruksi": "Bidik densiometer secara tegak lurus searah dada pengamat.", "lampiranHeaders": ["Sektor Titik", "Skor A", "Skor B", "Catatan Khusus"] },
+        { "id": "p2", "parameter": "Tinggi Dominan", "satuan": "m", "lampiranInstruksi": "Gunakan clinometer untuk mengukur sudut puncak dan pangkal dari jarak yang ditentukan.", "lampiranHeaders": ["Spesies", "Jarak", "Sudut Puncak", "Sudut Pangkal", "Estimasi (m)"] }
       ]
     }
   ],
@@ -95,10 +97,11 @@ WAJIB KEMBALIKAN HANYA OBJEK JSON MURNI YANG VALID. DILARANG MEMBERIKAN TEKS PEN
       observasi: [
         {
           dimensi: "Dimensi Observasi Umum",
+          lampiranInstruksi: "Lakukan pengamatan secara iteratif di setiap titik stasiun menggunakan pedoman visual standar sebelum mencatat kuantitas spesifik.",
           lampiranHeaders: ["Sektor / Area Pos", "Faktor Lingkungan A", "Faktor Lingkungan B", "Hasil Pengukuran Akumulatif", "Catatan Deskriptif Fenomena"],
           items: [
-            { id: "p1", parameter: "Indikator Target Utama 1", satuan: "Skala Validasi / Kategori", lampiranHeaders: ["Nama Objek Temuan", "Nilai Terukur", "Catatan Tambahan"] },
-            { id: "p2", parameter: "Indikator Target Utama 2", satuan: "Skala Validasi / Kategori", lampiranHeaders: ["Subjek/Responden", "Kuantitas", "Keterangan Validasi"] }
+            { id: "p1", parameter: "Indikator Target Utama 1", satuan: "Skala Validasi / Kategori", lampiranInstruksi: "Identifikasi sampel target sedekat mungkin tanpa merusak struktur dan hitung secara berurutan.", lampiranHeaders: ["Nama Objek Temuan", "Nilai Terukur", "Catatan Tambahan"] },
+            { id: "p2", parameter: "Indikator Target Utama 2", satuan: "Skala Validasi / Kategori", lampiranInstruksi: "Lakukan pencatatan frekuensi kemunculan objek tersebut dalam durasi absolut menggunakan tally counter.", lampiranHeaders: ["Subjek/Responden", "Kuantitas", "Keterangan Validasi"] }
           ]
         }
       ],
@@ -828,7 +831,7 @@ ${coverText}`;
                             </table>
                             <div className="mt-4 px-2 pb-4 text-left text-slate-400 print:text-[#333]">
                                <p className="text-[11px] print:text-[10px] font-medium leading-relaxed italic border-l-2 border-[#0ea5e9] print:border-[#333] pl-3">
-                                 * <strong>Instruksi Pengisian Dimensi: {group.dimensi}.</strong> Gunakan alat tulis tahan air. Berikan coretan tunggal (<s>salah</s>) jika salah catat guna menjaga integritas data. Seluruh kolom metrik yang merepresentasikan {group.dimensi} wajib diisi berdasarkan hasil observasi lapangan secara faktual.
+                                 * <strong>SOP Observasi Dimensi: {group.dimensi}.</strong> {group.lampiranInstruksi ? <span className="text-[#0ea5e9]">Petunjuk Teknis: {group.lampiranInstruksi} | Aturan Umum: </span> : ''}Gunakan alat tulis tahan air. Berikan coretan tunggal (<s>salah</s>) jika salah catat. Pastikan data tercatat secara faktual.
                                </p>
                             </div>
                           </div>
@@ -870,7 +873,7 @@ ${coverText}`;
                               </table>
                               <div className="mt-4 px-2 pb-4 text-left text-slate-400 print:text-[#333]">
                                  <p className="text-[11px] print:text-[10px] font-medium leading-relaxed italic border-l-2 border-[#0ea5e9] print:border-[#333] pl-3">
-                                   * <strong>Instruksi Pengisian Parameter Spesifik: {item.parameter}.</strong> Gunakan alat tulis tahan air. Berikan coretan tunggal (<s>salah</s>) jika salah catat. Pastikan seluruh metrik pengamatan yang berkaitan dengan indikator {item.parameter} terdokumentasi akurat sesuai kondisi rill di objek observasi.
+                                   * <strong>SOP Parameter Spesifik: {item.parameter}.</strong> {item.lampiranInstruksi ? <span className="text-[#0ea5e9]">Petunjuk Teknis: {item.lampiranInstruksi} | Aturan Umum: </span> : ''}Gunakan alat tulis tahan air. Berikan coretan tunggal (<s>salah</s>) jika salah catat. Jaga integritas log lapangan dengan menulis secara terukur.
                                  </p>
                               </div>
                             </div>
