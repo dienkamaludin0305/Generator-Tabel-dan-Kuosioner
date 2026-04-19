@@ -24,7 +24,7 @@ export default function App() {
   });
 
   const [researchData, setResearchData] = useState({
-    judul: '', babContent: '', teknik: 'Observasi (Pengamatan)'
+    judul: '', babContent: '', teknik: 'Observasi (Pengamatan)', metodologi: 'Kuantitatif Deskriptif'
   });
 
   const [variabelData, setVariabelData] = useState([]);
@@ -44,6 +44,7 @@ export default function App() {
     setResearchData({
       judul: 'Analisis Stratifikasi Vegetasi di Hutan Lindung Gunung Patuha',
       babContent: 'Penelitian ini akan mengukur parameter lingkungan biotik secara langsung.',
+      metodologi: 'Kuantitatif Deskriptif',
       teknik: 'Observasi (Pengamatan)'
     });
   };
@@ -52,6 +53,7 @@ export default function App() {
 Anda adalah seorang Ahli Metodologi Penelitian Lapangan Teknis.
 Berdasarkan parameter skripsi di bawah ini:
 Judul Skripsi: "{judul}"
+Jenis Metodologi: "{metodologi}"
 Teknik Pengambilan Data: "{teknik}"
 Konteks Alat / Tambahan: "{konteks}"
 Program Studi Mahasiswa: "{prodi}"
@@ -282,6 +284,7 @@ ${coverText}`;
       let detail;
       const prompt = PROMPT_TEMPLATE
           .replace('{judul}', currentJudul)
+          .replace('{metodologi}', researchData.metodologi || 'Kuantitatif Deskriptif')
           .replace('{teknik}', researchData.teknik || 'Observasi (Pengamatan)')
           .replace('{konteks}', currentKonteks)
           .replace('{prodi}', currentProfile.prodi);
@@ -606,26 +609,49 @@ ${coverText}`;
                    <textarea className="w-full p-5 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-[#0ea5e9] transition-all font-black text-xl text-slate-800 leading-tight outline-none" rows="2" placeholder="Analisis Morfologi..." value={researchData.judul} onChange={e => setResearchData({...researchData, judul: e.target.value})} />
                  </div>
                  
-                 <div className="space-y-3 pt-2">
-                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Teknik Pengambilan Data</label>
-                   <div className="relative">
-                     <select 
-                        className="w-full p-5 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-[#0ea5e9] transition-all font-bold text-slate-800 outline-none appearance-none cursor-pointer shadow-sm"
-                        value={researchData.teknik || 'Observasi (Pengamatan)'}
-                        onChange={e => setResearchData({...researchData, teknik: e.target.value})}
-                     >
-                        <option value="Observasi (Pengamatan)">Observasi (Pengamatan)</option>
-                        <option value="Wawancara (Interview)">Wawancara (Interview)</option>
-                        <option value="Kuesioner (Angket)">Kuesioner (Angket)</option>
-                        <option value="Studi Dokumentasi">Studi Dokumentasi</option>
-                        <option value="Eksperimen">Eksperimen</option>
-                     </select>
-                     <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                   <div className="space-y-3">
+                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Jenis Metodologi</label>
+                     <div className="relative">
+                       <select 
+                          className="w-full p-5 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-[#0ea5e9] transition-all font-bold text-slate-800 outline-none appearance-none cursor-pointer shadow-sm"
+                          value={researchData.metodologi || 'Kuantitatif Deskriptif'}
+                          onChange={e => setResearchData({...researchData, metodologi: e.target.value})}
+                       >
+                          <option value="Kuantitatif Deskriptif">Kuantitatif Deskriptif</option>
+                          <option value="Kuantitatif Korelasional">Kuantitatif Korelasional</option>
+                          <option value="Kuantitatif Eksperimen">Kuantitatif Eksperimen</option>
+                          <option value="Kualitatif Deskriptif">Kualitatif Deskriptif</option>
+                          <option value="Kualitatif Fenomenologi">Kualitatif Fenomenologi</option>
+                          <option value="Kualitatif Studi Kasus">Kualitatif Studi Kasus</option>
+                          <option value="Mix Methods (Kuantitatif & Kualitatif)">Mix Methods (Campuran)</option>
+                          <option value="R&D (Research and Development)">R&D (Research & Development)</option>
+                       </select>
+                       <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
+                     </div>
+                   </div>
+
+                   <div className="space-y-3">
+                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Teknik Pengambilan Data</label>
+                     <div className="relative">
+                       <select 
+                          className="w-full p-5 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-[#0ea5e9] transition-all font-bold text-slate-800 outline-none appearance-none cursor-pointer shadow-sm"
+                          value={researchData.teknik || 'Observasi (Pengamatan)'}
+                          onChange={e => setResearchData({...researchData, teknik: e.target.value})}
+                       >
+                          <option value="Observasi (Pengamatan)">Observasi (Pengamatan)</option>
+                          <option value="Wawancara (Interview)">Wawancara (Interview)</option>
+                          <option value="Kuesioner (Angket)">Kuesioner (Angket)</option>
+                          <option value="Studi Dokumentasi">Studi Dokumentasi</option>
+                          <option value="Eksperimen">Eksperimen</option>
+                       </select>
+                       <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
+                     </div>
                    </div>
                  </div>
 
                  <div className="space-y-3 pt-2">
-                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Metodologi / Konteks Alat</label>
+                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Konteks Lanjutan / Alat Khusus</label>
                    <textarea className="w-full p-5 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-[#0ea5e9] transition-all font-medium text-sm text-slate-600 leading-relaxed outline-none" rows="3" placeholder="Jelaskan instrumen penelitian, misal: menggunakan drone, wawancara mendalam, dsb..." value={researchData.babContent} onChange={e => setResearchData({...researchData, babContent: e.target.value})} />
                  </div>
                </div>
