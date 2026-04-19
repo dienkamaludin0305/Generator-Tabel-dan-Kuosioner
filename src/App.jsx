@@ -403,12 +403,12 @@ ${coverText}`;
   return (
     <div className="flex min-h-screen font-sans text-slate-800 relative z-0">
       {/* Background Grid Layer Matching Screenshot */}
-      <div className="absolute inset-0 z-0 bg-[#eff4f8]">
+      <div className="absolute inset-0 z-0 bg-[#eff4f8] print:hidden">
          <div className="w-full h-full opacity-30 bg-[linear-gradient(to_right,#cbd5e1_1px,transparent_1px),linear-gradient(to_bottom,#cbd5e1_1px,transparent_1px)] bg-[size:1.5rem_1.5rem]"></div>
       </div>
       
       {/* SIDEBAR EXACT MATCH */}
-      <aside className="w-64 bg-[#192231] text-slate-300 flex flex-col fixed left-0 top-0 bottom-0 shadow-2xl z-50">
+      <aside className="w-64 bg-[#192231] text-slate-300 flex flex-col fixed left-0 top-0 bottom-0 shadow-2xl z-50 print:hidden">
         <div className="px-6 py-6 border-b border-transparent">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 border-2 border-white rounded-md flex items-center justify-center font-black text-white text-lg">
@@ -465,10 +465,10 @@ ${coverText}`;
       </aside>
 
       {/* MAIN LAYOUT */}
-      <div className="ml-64 flex-1 flex flex-col relative z-10 w-full min-h-screen">
+      <div className="ml-64 print:ml-0 flex-1 flex flex-col relative z-10 w-full min-h-screen print:bg-white text-black">
         
         {/* HEADER EXACT MATCH */}
-        <header className="h-20 bg-white/40 flex items-center justify-end px-8 z-40 sticky top-0">
+        <header className="h-20 bg-white/40 flex items-center justify-end px-8 z-40 sticky top-0 print:hidden">
            <div className="flex items-center gap-8">
               <div className="relative cursor-pointer hover:opacity-80">
                  <Bell className="w-5 h-5 text-slate-600" />
@@ -487,7 +487,7 @@ ${coverText}`;
         </header>
 
         {/* CONTENT */}
-        <main className="p-8 pb-20 w-full max-w-[1200px] mx-auto overflow-x-hidden pt-4 relative">
+        <main className="p-8 pb-20 print:p-0 w-full max-w-[1200px] mx-auto overflow-x-hidden pt-4 print:pt-0 relative">
           
           {error && (
             <div className="p-4 bg-red-50 text-red-600 rounded-2xl flex gap-3 text-sm font-black border border-red-200 mb-6 drop-shadow-sm absolute top-4 left-8 right-8 z-50">
@@ -614,8 +614,8 @@ ${coverText}`;
 
           {/* PAGE STEP 1: TALLY SHEET */}
           {currentStep === 1 && (
-             <div className="bg-white rounded-[2rem] shadow-sm border border-slate-200/60 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300">
-               <div className="p-8 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+             <div className="bg-white rounded-[2rem] print:rounded-none shadow-sm print:shadow-none border border-slate-200/60 print:border-none print:bg-transparent overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300">
+               <div className="p-8 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 print:hidden">
                  <div>
                    <h3 className="text-2xl font-black text-[#1a2332]">Tabel Tally Sheet Observasi</h3>
                    <p className="text-sm font-semibold text-slate-400 mt-1 max-w-2xl">Penjabaran komponen data teknis yang wajib dibawa dan diisi di Plot lapangan penelitian.</p>
@@ -624,7 +624,7 @@ ${coverText}`;
                </div>
                
                {variabelData && variabelData.length > 0 && (
-                 <div className="px-8 pt-8 pb-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 bg-slate-50/50 border-b border-slate-100">
+                 <div className="px-8 pt-8 pb-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 bg-slate-50/50 border-b border-slate-100 print:hidden">
                    {variabelData.map((v, idx) => (
                       <div key={idx} className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm border-t-4 hover:-translate-y-1 transition-transform" style={{borderTopColor: chevronColors[idx % 4]}}>
                          <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{v.jenis}</div>
@@ -635,7 +635,7 @@ ${coverText}`;
                  </div>
                )}
 
-               <div className="px-8 pb-8 pt-6">
+               <div className="px-8 pb-8 pt-6 print:p-0">
 
                   {/* Lembar Observasi Lapangan (VIEW 1 - Tally Sheet Configuration) */}
                   <div className={isLampiranGenerated ? "hidden print:block" : "block"}>
