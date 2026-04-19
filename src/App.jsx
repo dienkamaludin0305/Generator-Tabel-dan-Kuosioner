@@ -24,7 +24,7 @@ export default function App() {
   });
 
   const [researchData, setResearchData] = useState({
-    judul: '', babContent: '', teknik: 'Observasi (Pengamatan)', metodologi: 'Kuantitatif Deskriptif'
+    judul: '', babContent: '', teknik: 'Observasi (Pengamatan)', metodologi: 'Kuantitatif Deskriptif', skalaKuesioner: 'Skala Likert (5 Poin: SS-STS)'
   });
 
   const [variabelData, setVariabelData] = useState([]);
@@ -42,10 +42,11 @@ export default function App() {
       nama: 'Andi Rianto', perguruanTinggi: 'Universitas Padjadjaran', prodi: 'Biologi', fakultas: 'MIPA', jenjang: 'S1'
     });
     setResearchData({
-      judul: 'Analisis Stratifikasi Vegetasi di Hutan Lindung Gunung Patuha',
-      babContent: 'Penelitian ini akan mengukur parameter lingkungan biotik secara langsung.',
+      judul: 'Analisis Kemampuan Literasi Baca Berbasis Digital',
+      babContent: 'Penelitian ini akan mengukur sampel parameter secara langsung pada responden siswa.',
       metodologi: 'Kuantitatif Deskriptif',
-      teknik: 'Observasi (Pengamatan)'
+      teknik: 'Kuesioner (Angket)',
+      skalaKuesioner: 'Skala Likert (5 Poin: SS-STS)'
     });
   };
 
@@ -55,6 +56,7 @@ Berdasarkan parameter skripsi di bawah ini:
 Judul Skripsi: "{judul}"
 Jenis Metodologi: "{metodologi}"
 Teknik Pengambilan Data: "{teknik}"
+Format Skala (Khusus Kuesioner): "{skala}"
 Konteks Alat / Tambahan: "{konteks}"
 Program Studi Mahasiswa: "{prodi}"
 
@@ -62,7 +64,7 @@ Tugas:
 1. Ekstrak dan definisikan Variabel Utama penelitian (X, Y, Z, M jika ada). Jelaskan setiap variabel secara PADAT, LUGAS, dan RINGKAS.
 2. Rancang instrumen spesifik secara TEKNIS dan MENDALAM yang merupakan derivasi/turunan langsung dari Variabel tersebut untuk menjawab rumusan masalah. Desain instrumen harus SANGAT MENGIKUTI pola Teknik Pengambilan Data ("{teknik}"):
    - Jika Wawancara: Hasilkan daftar pertanyaan wawancara mendalam yang terstruktur (kategori: Pemanasan, Inti/Proses, Faktor Pengaruh, Solusi/Harapan) penjabaran dari variabel X, Y, Z, M. Gunakan teknik 5W+1H (fokus 'Mengapa' dan 'Bagaimana'), teknik Probing (gali lebih dalam), dan TIDAK mengarahkan subjek pada satu jawaban bias. JANGAN HASILKAN FORMAT TABEL UNTUK WAWANCARA.
-   - Jika Kuesioner: Hasilkan susunan pernyataan skalar (misal Likert) yang secara jitu memproksi fenomena probabilitas.
+   - Jika Kuesioner: Operasionalisasikan variabel menjadi indikator lalu susun item pernyataan kuesioner dengan Tipe Skala: {skala}. Buatkan proporsi berimbang antara item pernyataan Favorable (Positif) dan Unfavorable (Negatif). Pastikan parameter/item tidak bermakna ganda (bukan double-barreled) dan bersifat netral.
    - Jika Studi Dokumentasi: Hasilkan daftar kebutuhan arsip/dokumen legal formal dan poin ekstraksinya.
    - Jika Eksperimen: Hasilkan matriks perlakuan kelompok kontrol/intervensi dan metrik efeknya.
    - Jika Observasi: Hasilkan susunan parameter pengamatan fisik lapangan, kuadran, dsb.
@@ -70,8 +72,8 @@ Tugas:
 4. Setiap item/parameter WAJIB mencantumkan Satuan ukur / Skala / Tolok Ukur Validasi / Target Subjek.
 5. Siapkan juga struktur header Tabel Primer dan berikan 3 sampel mock-data pengisian.
 6. KHUSUS WAWANCARA: PADA "observasi", JANGAN buat \`lampiranHeaders\`! Gantilah menjadi array \`pertanyaan\` di dalam \`items\`, yang isinya berupa langsung kumpulan *String* kalimat pertanyaan (Dilarang bentuk tabel).
-   - UNTUK METODE LAIN: Untuk SETIAP dimensi dan item parameter, WAJIB definisikan array \`lampiranHeaders\` berisi judul kolom spesifik. JANGAN gunakan header generik!
-7. Untuk SETIAP dimensi dan parameter, WAJIB definisikan string \`lampiranInstruksi\` yang berisi detail SOP. (Contoh Wawancara: "Probing: Bisa jelaskan detail bagian tersebut?").
+   - UNTUK METODE LAIN: Untuk SETIAP dimensi dan item parameter, WAJIB definisikan array \`lampiranHeaders\` berisi judul kolom spesifik. Jika Kuesioner, sesuaikan \`lampiranHeaders\` dengan pilihan {skala} (Misal Likert: ["Pernyataan", "SS", "S", "N", "TS", "STS"] atau Guttman: ["Pernyataan", "Ya", "Tidak"]). JANGAN gunakan header generik!
+7. Untuk SETIAP dimensi dan parameter, WAJIB definisikan string \`lampiranInstruksi\` yang berisi detail SOP. (Contoh Kuesioner: "Berikan penjelasan di awal sebelum responden mensubmit; Jamin Anonimitas").
 
 WAJIB KEMBALIKAN HANYA OBJEK JSON MURNI YANG VALID. DILARANG MEMBERIKAN TEKS PENDAHULUAN ATAU BACKTICKS:
 {
@@ -287,6 +289,7 @@ ${coverText}`;
           .replace('{judul}', currentJudul)
           .replace('{metodologi}', researchData.metodologi || 'Kuantitatif Deskriptif')
           .replace('{teknik}', researchData.teknik || 'Observasi (Pengamatan)')
+          .replace('{skala}', researchData.skalaKuesioner || 'Skala Likert (5 Poin: SS-STS)')
           .replace('{konteks}', currentKonteks)
           .replace('{prodi}', currentProfile.prodi);
 
@@ -650,6 +653,23 @@ ${coverText}`;
                      </div>
                    </div>
                  </div>
+
+                 {researchData.teknik?.includes('Kuesioner') && (
+                   <div className="space-y-3 pt-2">
+                     <label className="text-[10px] font-black text-indigo-400 uppercase tracking-widest ml-1 flex items-center gap-2">Mekanisme Skala Pengukuran</label>
+                     <div className="relative">
+                       <select 
+                          className="w-full p-5 bg-indigo-50/50 border border-indigo-100 rounded-xl focus:ring-2 focus:ring-indigo-400 transition-all font-bold text-indigo-800 outline-none appearance-none cursor-pointer shadow-sm"
+                          value={researchData.skalaKuesioner || 'Skala Likert (5 Poin: SS-STS)'}
+                          onChange={e => setResearchData({...researchData, skalaKuesioner: e.target.value})}
+                       >
+                          <option value="Skala Likert (5 Poin: SS-STS)">Skala Likert (5 Poin: Sangat Setuju - Sangat Tidak Setuju)</option>
+                          <option value="Skala Guttman (Ya - Tidak)">Skala Guttman (Jawaban Tegas: Ya / Tidak)</option>
+                       </select>
+                       <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-indigo-400 pointer-events-none" />
+                     </div>
+                   </div>
+                 )}
 
                  <div className="space-y-3 pt-2">
                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Konteks Lanjutan / Alat Khusus</label>
