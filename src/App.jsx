@@ -597,7 +597,7 @@ ${coverText}`;
 
                <div className="space-y-6">
                  <div className="space-y-3">
-                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Judul Topik Observasi</label>
+                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Judul Topik Penelitian</label>
                    <textarea className="w-full p-5 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-[#0ea5e9] transition-all font-black text-xl text-slate-800 leading-tight outline-none" rows="2" placeholder="Analisis Morfologi..." value={researchData.judul} onChange={e => setResearchData({...researchData, judul: e.target.value})} />
                  </div>
                  
@@ -617,6 +617,11 @@ ${coverText}`;
                      </select>
                      <ChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
                    </div>
+                 </div>
+
+                 <div className="space-y-3 pt-2">
+                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Metodologi / Konteks Alat</label>
+                   <textarea className="w-full p-5 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-[#0ea5e9] transition-all font-medium text-sm text-slate-600 leading-relaxed outline-none" rows="3" placeholder="Jelaskan instrumen penelitian, misal: menggunakan drone, wawancara mendalam, dsb..." value={researchData.babContent} onChange={e => setResearchData({...researchData, babContent: e.target.value})} />
                  </div>
                </div>
 
