@@ -815,7 +815,7 @@ ${coverText}`;
                                 </tr>
                               </thead>
                               <tbody>
-                                {[...Array(20)].map((_, rIdx) => (
+                                {[...Array(19)].map((_, rIdx) => (
                                   <tr key={rIdx} className="bg-[#181d27] border-b border-slate-700 hover:bg-[#1e2432] transition-colors print:h-[13.5mm]">
                                     {[...Array(colCount)].map((_, cIdx) => (
                                       <td key={cIdx} className="p-4 text-[13px] font-medium text-slate-400 border-r border-slate-800 text-center">
@@ -826,6 +826,11 @@ ${coverText}`;
                                 ))}
                               </tbody>
                             </table>
+                            <div className="mt-4 px-2 pb-4 text-left text-slate-400 print:text-[#333]">
+                               <p className="text-[11px] print:text-[10px] font-medium leading-relaxed italic border-l-2 border-[#0ea5e9] print:border-[#333] pl-3">
+                                 * <strong>Instruksi Pengisian Dimensi: {group.dimensi}.</strong> Gunakan alat tulis tahan air. Berikan coretan tunggal (<s>salah</s>) jika salah catat guna menjaga integritas data. Seluruh kolom metrik yang merepresentasikan {group.dimensi} wajib diisi berdasarkan hasil observasi lapangan secara faktual.
+                               </p>
+                            </div>
                           </div>
                         );
                       }
@@ -852,7 +857,7 @@ ${coverText}`;
                                   </tr>
                                 </thead>
                                 <tbody>
-                                  {[...Array(20)].map((_, rIdx) => (
+                                  {[...Array(19)].map((_, rIdx) => (
                                     <tr key={rIdx} className="bg-[#181d27] border-b border-slate-700 hover:bg-[#1e2432] transition-colors print:h-[13.5mm]">
                                       {[...Array(colCount)].map((_, cIdx) => (
                                         <td key={cIdx} className="p-4 text-[13px] font-medium text-slate-400 border-r border-slate-800 text-center">
@@ -863,6 +868,11 @@ ${coverText}`;
                                   ))}
                                 </tbody>
                               </table>
+                              <div className="mt-4 px-2 pb-4 text-left text-slate-400 print:text-[#333]">
+                                 <p className="text-[11px] print:text-[10px] font-medium leading-relaxed italic border-l-2 border-[#0ea5e9] print:border-[#333] pl-3">
+                                   * <strong>Instruksi Pengisian Parameter Spesifik: {item.parameter}.</strong> Gunakan alat tulis tahan air. Berikan coretan tunggal (<s>salah</s>) jika salah catat. Pastikan seluruh metrik pengamatan yang berkaitan dengan indikator {item.parameter} terdokumentasi akurat sesuai kondisi rill di objek observasi.
+                                 </p>
+                              </div>
                             </div>
                           );
                         });
@@ -871,18 +881,7 @@ ${coverText}`;
                       return elements;
                     })}
 
-                     <div className="mt-14 mb-4 p-6 mx-8 border-l-4 border-[#0ea5e9] bg-[#222836] min-w-[500px] w-fit max-w-[80%] print:w-full print:mx-0 rounded-r-2xl shadow-xl shadow-slate-900/50">
-                       <div className="flex items-center gap-3 mb-4">
-                         <Info className="w-5 h-5 text-[#0ea5e9]" />
-                         <h4 className="text-[14px] font-bold text-white uppercase tracking-wider">Instruksi Pengisian Lapangan</h4>
-                       </div>
-                       <ul className="text-[12px] text-slate-400 list-decimal pl-6 space-y-2.5 leading-relaxed font-medium">
-                         <li><strong className="text-slate-200">Nama Spesies/Objek:</strong> Isi dengan nama lokal atau ilmiah secara spesifik. Jika belum teridentifikasi, gunakan nama "Unidentified-1" dan wajib disertai dokumentasi foto.</li>
-                         <li><strong className="text-slate-200">Nilai Terukur:</strong> Tulis angka pasti dengan metode tally (turus), atau perhitungan skala yang sesuai dengan standar metodologi observasi Anda.</li>
-                         <li><strong className="text-slate-200">Catatan Klinis:</strong> Gunakan rekam koordinat GPS, ciri fisik anomali, kode ID aset rekaman visual/audio, atau kondisi cuaca mikro saat penemuan benda.</li>
-                         <li><strong className="text-slate-200">Kepatuhan Tulis Tangan:</strong> Gunakan alat tulis tahan air (waterproof). Jika terjadi salah catat, dilarang menimpa atau menggunakan *correction pen*. Lakukan coretan satu garis (<s>salah</s>) dan bubuhkan paraf kecil demi auditabilitas data mentah.</li>
-                       </ul>
-                     </div>
+                     {/* Instruksi Pengisian Terkustomisasi Terletak Internal pada Masing-Masing Tabel */}
 
                      <div className="flex justify-center gap-6 mt-16 mb-12 print:hidden w-full">
                         <button 
