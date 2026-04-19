@@ -61,7 +61,7 @@ Program Studi Mahasiswa: "{prodi}"
 Tugas:
 1. Ekstrak dan definisikan Variabel Utama penelitian (X, Y, Z, M jika ada). Jelaskan setiap variabel secara PADAT, LUGAS, dan RINGKAS.
 2. Rancang instrumen spesifik secara TEKNIS dan MENDALAM yang merupakan derivasi/turunan langsung dari Variabel tersebut untuk menjawab rumusan masalah. Desain instrumen harus SANGAT MENGIKUTI pola Teknik Pengambilan Data ("{teknik}"):
-   - Jika Wawancara: Hasilkan daftar pertanyaan wawancara mendalam yang terstruktur untuk menggali indikator variabel.
+   - Jika Wawancara: Hasilkan daftar pertanyaan wawancara mendalam yang terstruktur (kategori: Pemanasan, Inti/Proses, Faktor Pengaruh, Solusi/Harapan) penjabaran dari variabel X, Y, Z, M. Gunakan teknik 5W+1H (fokus 'Mengapa' dan 'Bagaimana'), teknik Probing (gali lebih dalam), dan TIDAK mengarahkan subjek pada satu jawaban bias. JANGAN HASILKAN FORMAT TABEL UNTUK WAWANCARA.
    - Jika Kuesioner: Hasilkan susunan pernyataan skalar (misal Likert) yang secara jitu memproksi fenomena probabilitas.
    - Jika Studi Dokumentasi: Hasilkan daftar kebutuhan arsip/dokumen legal formal dan poin ekstraksinya.
    - Jika Eksperimen: Hasilkan matriks perlakuan kelompok kontrol/intervensi dan metrik efeknya.
@@ -69,8 +69,9 @@ Tugas:
 3. Instrumen/Parameter harus dikelompokkan hierarkis ke dalam "Dimensi".
 4. Setiap item/parameter WAJIB mencantumkan Satuan ukur / Skala / Tolok Ukur Validasi / Target Subjek.
 5. Siapkan juga struktur header Tabel Primer dan berikan 3 sampel mock-data pengisian.
-6. Untuk SETIAP dimensi dan item parameter, WAJIB definisikan array \`lampiranHeaders\` berisi judul kolom spesifik. Jika wawancara: ["Aktor/Subjek", "Pertanyaan Detail", "Inti Jawaban", "Catatan Peneliti"]. Jika kuesioner: ["Profil", "SS", "S", "N", "TS", "STS"]. JANGAN gunakan header generik!
-7. Untuk SETIAP dimensi dan parameter, WAJIB definisikan string \`lampiranInstruksi\` yang berisi detail SOP murni teknis cara mengeksekusi metode tersebut (contoh: "Gali narasi mendalam tanpa memberikan impresi bias", atau "Kirimkan ke minimum 50 responden via GForm").
+6. KHUSUS WAWANCARA: PADA "observasi", JANGAN buat \`lampiranHeaders\`! Gantilah menjadi array \`pertanyaan\` di dalam \`items\`, yang isinya berupa langsung kumpulan *String* kalimat pertanyaan (Dilarang bentuk tabel).
+   - UNTUK METODE LAIN: Untuk SETIAP dimensi dan item parameter, WAJIB definisikan array \`lampiranHeaders\` berisi judul kolom spesifik. JANGAN gunakan header generik!
+7. Untuk SETIAP dimensi dan parameter, WAJIB definisikan string \`lampiranInstruksi\` yang berisi detail SOP. (Contoh Wawancara: "Probing: Bisa jelaskan detail bagian tersebut?").
 
 WAJIB KEMBALIKAN HANYA OBJEK JSON MURNI YANG VALID. DILARANG MEMBERIKAN TEKS PENDAHULUAN ATAU BACKTICKS:
 {
@@ -891,44 +892,80 @@ ${coverText}`;
 
                       if (group.items) {
                         group.items.filter(item => checkedLampiranIds.includes(item.id)).forEach(item => {
-                          const headers = ['No', ...(item.lampiranHeaders || ['Subjek / Objek Target', 'Angka / Nilai Terukur', 'Catatan Kualitatif / Dokumentasi'])];
-                          const colCount = headers.length;
-                          elements.push(
-                            <div key={item.id} className="mt-12 mb-2 overflow-x-auto rounded-2xl border border-slate-700 w-full shadow-2xl print:break-inside-avoid print:break-after-page print:shadow-none print:border-none print:m-0">
-                              <table className="w-full text-left border-collapse min-w-[800px]">
-                                <thead>
-                                  <tr>
-                                    <th colSpan={colCount} className="bg-[#1e2432] p-5 text-[15px] font-bold text-white border-b border-slate-700 tracking-wide text-center">
-                                      Tabel Lampiran Detail Observasi: {item.parameter}
-                                    </th>
-                                  </tr>
-                                  <tr className="bg-[#222836] border-b border-slate-700">
-                                    {headers.map((col, cIdx) => (
-                                      <th key={cIdx} className={`p-4 text-[12px] uppercase font-bold text-[#0ea5e9] tracking-wide ${cIdx === 0 ? 'w-14 text-center border-r' : 'border-r'} border-slate-700/50`}>
-                                        {col}
+                          // Conditional Check For Wawancara List vs Regular Table
+                          const isWawancara = mainTeknik.toLowerCase().includes('wawancara') || item.pertanyaan;
+
+                          if (isWawancara) {
+                            const pertanyaanList = item.pertanyaan || [
+                              "Bagaimana pengalaman Anda terkait hal ini?",
+                              "Mengapa fenomena tersebut bisa terjadi menurut pandangan Anda?",
+                              "Bisa diceritakan lebih detail dampak dari proses tersebut?"
+                            ];
+                            
+                            elements.push(
+                              <div key={item.id} className="mt-12 mb-2 p-8 rounded-2xl border border-slate-700 w-full shadow-2xl bg-[#1e2432] print:bg-transparent print:break-inside-avoid print:break-after-page print:shadow-none print:border-none print:p-0 print:m-0">
+                                <h4 className="text-[16px] font-bold text-white print:text-black border-b border-slate-700 pb-4 mb-6">
+                                  Draf Pertanyaan Wawancara: <span className="text-[#0ea5e9] uppercase tracking-wide">{item.parameter}</span>
+                                </h4>
+                                <ul className="space-y-6">
+                                  {pertanyaanList.map((tanya, qIdx) => (
+                                    <li key={qIdx} className="flex gap-4 items-start">
+                                      <div className="w-8 h-8 rounded-full bg-[#0ea5e9]/20 flex items-center justify-center text-[#0ea5e9] font-bold shrink-0">{qIdx + 1}</div>
+                                      <div className="flex-1">
+                                        <p className="text-[14px] text-slate-300 print:text-[#333] font-medium leading-relaxed">{tanya}</p>
+                                        <div className="mt-3 w-full border-b-2 border-dotted border-slate-600 print:border-[#bbb] h-8"></div>
+                                        <div className="w-full border-b-2 border-dotted border-slate-600 print:border-[#bbb] h-8"></div>
+                                      </div>
+                                    </li>
+                                  ))}
+                                </ul>
+                                <div className="mt-8 pt-6 px-4 text-left border-t border-slate-700/50 print:border-[#bbb]">
+                                   <p className="text-[12px] font-medium leading-relaxed italic border-l-2 border-[#0ea5e9] pl-3 text-slate-400 print:text-[#333]">
+                                     * <strong>Tips & SOP Probing:</strong> <span className={item.lampiranInstruksi ? "text-[#0ea5e9] print:text-[#333]" : ""}>{item.lampiranInstruksi || "Gali inti fenomena dengan prinsip 5W 1H tanpa mengarahkan subjek ke jawaban bias."}</span>
+                                   </p>
+                                </div>
+                              </div>
+                            );
+                          } else {
+                            const headers = ['No', ...(item.lampiranHeaders || ['Subjek / Objek Target', 'Angka / Nilai Terukur', 'Catatan Kualitatif / Dokumentasi'])];
+                            const colCount = headers.length;
+                            elements.push(
+                              <div key={item.id} className="mt-12 mb-2 overflow-x-auto rounded-2xl border border-slate-700 w-full shadow-2xl print:break-inside-avoid print:break-after-page print:shadow-none print:border-none print:m-0">
+                                <table className="w-full text-left border-collapse min-w-[800px]">
+                                  <thead>
+                                    <tr>
+                                      <th colSpan={colCount} className="bg-[#1e2432] p-5 text-[15px] font-bold text-white border-b border-slate-700 tracking-wide text-center">
+                                        Tabel Lampiran Detail Observasi: {item.parameter}
                                       </th>
-                                    ))}
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {[...Array(19)].map((_, rIdx) => (
-                                    <tr key={rIdx} className="bg-[#181d27] border-b border-slate-700 hover:bg-[#1e2432] transition-colors print:h-[13.5mm]">
-                                      {[...Array(colCount)].map((_, cIdx) => (
-                                        <td key={cIdx} className="p-4 text-[13px] font-medium text-slate-400 border-r border-slate-800 text-center">
-                                          {cIdx === 0 ? rIdx + 1 : <div className="w-full flex items-center justify-center h-full"><span className="inline-block border-b-2 border-dotted border-slate-600 w-11/12 translate-y-1">&nbsp;</span></div>}
-                                        </td>
+                                    </tr>
+                                    <tr className="bg-[#222836] border-b border-slate-700">
+                                      {headers.map((col, cIdx) => (
+                                        <th key={cIdx} className={`p-4 text-[12px] uppercase font-bold text-[#0ea5e9] tracking-wide ${cIdx === 0 ? 'w-14 text-center border-r' : 'border-r'} border-slate-700/50`}>
+                                          {col}
+                                        </th>
                                       ))}
                                     </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                              <div className="mt-4 px-2 pb-4 text-left text-slate-400 print:text-[#333]">
-                                 <p className="text-[11px] print:text-[10px] font-medium leading-relaxed italic border-l-2 border-[#0ea5e9] print:border-[#333] pl-3">
-                                   * <strong>SOP Teknis:</strong> <span className={item.lampiranInstruksi ? "text-[#0ea5e9] print:text-[#333]" : ""}>{item.lampiranInstruksi || `Lakukan transkripsi detail ${mainTeknik.toLowerCase()} untuk menentukan parameter ${item.parameter}.`}</span>
-                                 </p>
+                                  </thead>
+                                  <tbody>
+                                    {[...Array(19)].map((_, rIdx) => (
+                                      <tr key={rIdx} className="bg-[#181d27] border-b border-slate-700 hover:bg-[#1e2432] transition-colors print:h-[13.5mm]">
+                                        {[...Array(colCount)].map((_, cIdx) => (
+                                          <td key={cIdx} className="p-4 text-[13px] font-medium text-slate-400 border-r border-slate-800 text-center">
+                                            {cIdx === 0 ? rIdx + 1 : <div className="w-full flex items-center justify-center h-full"><span className="inline-block border-b-2 border-dotted border-slate-600 w-11/12 translate-y-1">&nbsp;</span></div>}
+                                          </td>
+                                        ))}
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                                <div className="mt-4 px-2 pb-4 text-left text-slate-400 print:text-[#333]">
+                                   <p className="text-[11px] print:text-[10px] font-medium leading-relaxed italic border-l-2 border-[#0ea5e9] print:border-[#333] pl-3">
+                                     * <strong>SOP Teknis:</strong> <span className={item.lampiranInstruksi ? "text-[#0ea5e9] print:text-[#333]" : ""}>{item.lampiranInstruksi || `Lakukan eksekusi secara mendalam untuk parameter ${item.parameter}.`}</span>
+                                   </p>
+                                </div>
                               </div>
-                            </div>
-                          );
+                            );
+                          }
                         });
                       }
                       
