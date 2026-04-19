@@ -670,11 +670,6 @@ ${coverText}`;
                      </div>
                    </div>
                  )}
-
-                 <div className="space-y-3 pt-2">
-                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Konteks Lanjutan / Alat Khusus</label>
-                   <textarea className="w-full p-5 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-[#0ea5e9] transition-all font-medium text-sm text-slate-600 leading-relaxed outline-none" rows="3" placeholder="Jelaskan instrumen penelitian, misal: menggunakan drone, wawancara mendalam, dsb..." value={researchData.babContent} onChange={e => setResearchData({...researchData, babContent: e.target.value})} />
-                 </div>
                </div>
 
                <div className="flex flex-col md:flex-row gap-4 mt-6">
@@ -870,44 +865,56 @@ ${coverText}`;
                       const elements = [];
                       
                       if (checkedLampiranIds.includes(group.dimensi)) {
-                        const headers = ['No', ...(group.lampiranHeaders || ['Subjek / Objek Pengamatan', 'Hasil Pengukuran', 'Catatan Tambahan'])];
-                        const colCount = headers.length;
-                        elements.push(
-                          <div key={`dim-${group.dimensi}`} className="mt-12 mb-2 overflow-x-auto rounded-2xl border border-slate-700 w-full shadow-2xl print:break-inside-avoid print:break-after-page print:shadow-none print:border-none print:m-0">
-                            <table className="w-full text-left border-collapse min-w-[800px]">
-                              <thead>
-                                <tr>
-                                  <th colSpan={colCount} className="bg-[#1e2432] p-5 text-[15px] font-bold text-white border-b border-slate-700 tracking-wide text-center">
-                                    Tabel Lampiran Dimensi: {group.dimensi}
-                                  </th>
-                                </tr>
-                                <tr className="bg-[#222836] border-b border-slate-700">
-                                  {headers.map((col, cIdx) => (
-                                    <th key={cIdx} className={`p-4 text-[12px] uppercase font-bold text-[#0ea5e9] tracking-wide ${cIdx === 0 ? 'w-14 text-center border-r' : 'border-r'} border-slate-700/50`}>
-                                      {col}
+                        const isWawancara = mainTeknik.toLowerCase().includes('wawancara');
+                        
+                        if (isWawancara) {
+                          elements.push(
+                            <div key={`dim-${group.dimensi}`} className="mt-12 mb-2 p-6 rounded-2xl border-2 border-dashed border-slate-700 bg-[#1e2432] print:bg-transparent print:break-inside-avoid print:shadow-none print:border-none print:m-0">
+                                <h4 className="text-[16px] font-black text-[#0ea5e9] text-center tracking-widest uppercase">
+                                  Topik Utama Wawancara: {group.dimensi}
+                                </h4>
+                            </div>
+                          );
+                        } else {
+                          const headers = ['No', ...(group.lampiranHeaders || ['Subjek / Objek Pengamatan', 'Hasil Pengukuran', 'Catatan Tambahan'])];
+                          const colCount = headers.length;
+                          elements.push(
+                            <div key={`dim-${group.dimensi}`} className="mt-12 mb-2 overflow-x-auto rounded-2xl border border-slate-700 w-full shadow-2xl print:break-inside-avoid print:break-after-page print:shadow-none print:border-none print:m-0">
+                              <table className="w-full text-left border-collapse min-w-[800px]">
+                                <thead>
+                                  <tr>
+                                    <th colSpan={colCount} className="bg-[#1e2432] p-5 text-[15px] font-bold text-white border-b border-slate-700 tracking-wide text-center">
+                                      Tabel Lampiran Dimensi: {group.dimensi}
                                     </th>
-                                  ))}
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {[...Array(19)].map((_, rIdx) => (
-                                  <tr key={rIdx} className="bg-[#181d27] border-b border-slate-700 hover:bg-[#1e2432] transition-colors print:h-[13.5mm]">
-                                    {[...Array(colCount)].map((_, cIdx) => (
-                                      <td key={cIdx} className="p-4 text-[13px] font-medium text-slate-400 border-r border-slate-800 text-center">
-                                        {cIdx === 0 ? rIdx + 1 : <div className="w-full flex items-center justify-center h-full"><span className="inline-block border-b-2 border-dotted border-slate-600 w-11/12 translate-y-1">&nbsp;</span></div>}
-                                      </td>
+                                  </tr>
+                                  <tr className="bg-[#222836] border-b border-slate-700">
+                                    {headers.map((col, cIdx) => (
+                                      <th key={cIdx} className={`p-4 text-[12px] uppercase font-bold text-[#0ea5e9] tracking-wide ${cIdx === 0 ? 'w-14 text-center border-r' : 'border-r'} border-slate-700/50`}>
+                                        {col}
+                                      </th>
                                     ))}
                                   </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                            <div className="mt-4 px-2 pb-4 text-left text-slate-400 print:text-[#333]">
-                               <p className="text-[11px] print:text-[10px] font-medium leading-relaxed italic border-l-2 border-[#0ea5e9] print:border-[#333] pl-3">
-                                 * <strong>SOP Teknis:</strong> <span className={group.lampiranInstruksi ? "text-[#0ea5e9] print:text-[#333]" : ""}>{group.lampiranInstruksi || `Lakukan eksekusi ${mainTeknik.toLowerCase()} data untuk dimensi ${group.dimensi}.`}</span>
-                               </p>
+                                </thead>
+                                <tbody>
+                                  {[...Array(19)].map((_, rIdx) => (
+                                    <tr key={rIdx} className="bg-[#181d27] border-b border-slate-700 hover:bg-[#1e2432] transition-colors print:h-[13.5mm]">
+                                      {[...Array(colCount)].map((_, cIdx) => (
+                                        <td key={cIdx} className="p-4 text-[13px] font-medium text-slate-400 border-r border-slate-800 text-center">
+                                          {cIdx === 0 ? rIdx + 1 : <div className="w-full flex items-center justify-center h-full"><span className="inline-block border-b-2 border-dotted border-slate-600 w-11/12 translate-y-1">&nbsp;</span></div>}
+                                        </td>
+                                      ))}
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                              <div className="mt-4 px-2 pb-4 text-left text-slate-400 print:text-[#333]">
+                                 <p className="text-[11px] print:text-[10px] font-medium leading-relaxed italic border-l-2 border-[#0ea5e9] print:border-[#333] pl-3">
+                                   * <strong>SOP Teknis:</strong> <span className={group.lampiranInstruksi ? "text-[#0ea5e9] print:text-[#333]" : ""}>{group.lampiranInstruksi || `Lakukan eksekusi ${mainTeknik.toLowerCase()} data untuk dimensi ${group.dimensi}.`}</span>
+                                 </p>
+                              </div>
                             </div>
-                          </div>
-                        );
+                          );
+                        }
                       }
 
                       if (group.items) {
