@@ -66,7 +66,7 @@ Tugas:
 1. Ekstrak dan definisikan Variabel Utama penelitian (X, Y, Z, M jika ada). Jelaskan setiap variabel secara PADAT, LUGAS, dan RINGKAS.
 2. Rancang instrumen spesifik secara TEKNIS dan MENDALAM yang merupakan derivasi/turunan langsung dari Variabel tersebut untuk menjawab rumusan masalah. Desain instrumen harus SANGAT MENGIKUTI pola Teknik Pengambilan Data ("{teknik}"):
    - Jika Wawancara: Hasilkan daftar pertanyaan wawancara mendalam yang SANGAT SPESIFIK membahas masing-masing Variabel (X, Y, Z, M). Setiap pertanyaan harus menyebutkan atau berkaitan langsung dengan konteks sub-variabel / dimensi secara eksplisit. BUKAN pertanyaan generik seperti "Bagaimana pengalaman Anda?". Gunakan teknik 5W+1H (fokus 'Mengapa' dan 'Bagaimana') dan teknik Probing terarah. JANGAN HASILKAN FORMAT TABEL UNTUK WAWANCARA.
-   - Jika Kuesioner: Operasionalisasikan variabel (X, Y, Z, M) secara SANGAT MENDALAM. Susun pernyataan kuesioner yang SANGAT TAJAM untuk menggali inti dari fenomena dan indikator teknis di lapangan. HINDARI pernyataan dangkal/generik! Tipe Skala: {skala}. Jika Guttman, pastikan pernyataan bersifat faktual dan tegas (Ya/Tidak). Buat proporsi berimbang Favorable (Positif) dan Unfavorable (Negatif). Pastikan pernyataan tidak ganda (bukan double-barreled). Murni *pernyataan*, BUKAN pertanyaan. WAJIB BUAT MINIMAL 10 PERNYATAAN UNTUK SETIAP VARIABEL / TOPIK!
+   - Jika Kuesioner: Operasionalisasikan variabel (X, Y, Z, M) secara SANGAT MENDALAM. Susun pernyataan kuesioner yang SANGAT TAJAM untuk menggali inti dari fenomena dan indikator teknis di lapangan. HINDARI pernyataan dangkal/generik! Tipe Skala: {skala}. Jika Guttman, pastikan pernyataan bersifat faktual dan tegas (Ya/Tidak). Buat proporsi berimbang Favorable (Positif) dan Unfavorable (Negatif). Pastikan pernyataan tidak ganda (bukan double-barreled). Murni *pernyataan*, BUKAN pertanyaan. WAJIB BUAT MINIMAL 10 PERNYATAAN UNTUK SETIAP VARIABEL / TOPIK dan simpan di dalam array kumpulan *String* bernama "pernyataan" di dalam object item (sejajar dengan id dan parameter)!
    - Jika Studi Dokumentasi: Hasilkan daftar kebutuhan arsip/dokumen legal formal dan poin ekstraksinya.
    - Jika Eksperimen: Hasilkan matriks perlakuan kelompok kontrol/intervensi dan metrik efeknya.
    - Jika Observasi: Hasilkan susunan parameter pengamatan fisik lapangan, kuadran, dsb.
@@ -117,8 +117,8 @@ WAJIB KEMBALIKAN HANYA OBJEK JSON MURNI YANG VALID. DILARANG MEMBERIKAN TEKS PEN
           dimensi: isK ? `Dimensi Konstruk Kuesioner (Skala ${isG ? 'Guttman' : 'Likert'})` : "Dimensi Observasi Umum",
           lampiranInstruksi: isK ? `SOP Kuesioner: Pastikan responden memahami bahwa skala yang dipakai adalah ${isG ? 'Ya / Tidak' : 'SS / S / N / TS / STS'} sebelum mereka memberikan jawaban. Jamin Anonimitas.` : "SOP Pengambilan Data: Lakukan pengukuran/pengisian instrumen secara cermat berdasarkan parameter yang ditetapkan.",
           items: [
-            { id: "p1", parameter: isK ? `Indikator Konstruk 1: Sikap Positif Responden` : "Indikator Target Utama 1", satuan: isK ? (isG ? "Biner" : "Poin Ordinal") : "Skala Validasi / Kategori", lampiranInstruksi: isK ? "Jangan memberi arahan yang bias kepada responden." : "Identifikasi sampel target sedekat mungkin.", pertanyaan: ["Terkait indikator ini, bagaimana dampaknya secara praktis?", "Solusi apa yang bisa ditawarkan untuk mengoptimalkan indikator ini?"] },
-            { id: "p2", parameter: isK ? `Indikator Konstruk 2: Evaluasi Faktor Hambatan` : "Indikator Target Utama 2", satuan: isK ? (isG ? "Biner" : "Poin Ordinal") : "Skala Validasi / Kategori", lampiranInstruksi: isK ? "Jelaskan definisi istilah sulit jika responden bingung." : "Lakukan pencatatan frekuensi kemunculan.", pertanyaan: ["Bagaimana fluktuasi target memengaruhi kinerja Anda?", "Faktor dominan apa yang menghambat proses terkait indikator ini?"] }
+            { id: "p1", parameter: isK ? `Indikator Konstruk 1: Sikap Positif Responden` : "Indikator Target Utama 1", satuan: isK ? (isG ? "Biner" : "Poin Ordinal") : "Skala Validasi / Kategori", lampiranInstruksi: isK ? "Jangan memberi arahan yang bias kepada responden." : "Identifikasi sampel target sedekat mungkin.", pernyataan: isK ? ["Guru membimbing materi dengan sangat jelas.", "Lingkungan kerja kondusif untuk belajar."] : [], pertanyaan: ["Terkait indikator ini, bagaimana dampaknya secara praktis?", "Solusi apa yang bisa ditawarkan untuk mengoptimalkan indikator ini?"] },
+            { id: "p2", parameter: isK ? `Indikator Konstruk 2: Evaluasi Faktor Hambatan` : "Indikator Target Utama 2", satuan: isK ? (isG ? "Biner" : "Poin Ordinal") : "Skala Validasi / Kategori", lampiranInstruksi: isK ? "Jelaskan definisi istilah sulit jika responden bingung." : "Lakukan pencatatan frekuensi kemunculan.", pernyataan: isK ? ["Alat K3 yang tersedia sudah kedaluwarsa.", "Terjadi kesulitan mendapatkan izin akses ruangan."] : [], pertanyaan: ["Bagaimana fluktuasi target memengaruhi kinerja Anda?", "Faktor dominan apa yang menghambat proses terkait indikator ini?"] }
           ]
         }
       ],
@@ -317,10 +317,10 @@ ${coverText}`;
           throw new Error("JSON Parse failed. Response was: " + responseText.substring(0, 50));
         }
       } else {
-        detail = generateDetailingFallback(currentJudul, currentProfile.prodi);
+        detail = generateDetailingFallback(currentJudul, currentProfile.prodi, researchData.teknik || 'Observasi', researchData.skalaKuesioner || '');
       }
 
-      const fallback = generateDetailingFallback();
+      const fallback = generateDetailingFallback(currentJudul, currentProfile.prodi, researchData.teknik || 'Observasi', researchData.skalaKuesioner || '');
       setVariabelData(detail.variabel_penelitian || fallback.variabel_penelitian);
       setObservasiData(detail.observasi || fallback.observasi);
       setCheckedLampiranIds([]);
@@ -872,11 +872,11 @@ ${coverText}`;
                       if (checkedLampiranIds.includes(group.dimensi)) {
                         const isWawancara = mainTeknik.toLowerCase().includes('wawancara');
 
-                        if (isWawancara) {
+                        if (isWawancara || mainTeknik.toLowerCase() === 'kuesioner') {
                           elements.push(
                             <div key={`dim-${group.dimensi}`} className="mt-12 mb-2 p-6 rounded-2xl border-2 border-dashed border-slate-700 bg-[#1e2432] print:bg-transparent print:break-inside-avoid print:shadow-none print:border-none print:m-0">
                               <h4 className="text-[16px] font-black text-[#0ea5e9] text-center tracking-widest uppercase">
-                                Topik Utama Wawancara: {group.dimensi}
+                                {isWawancara ? 'Topik Utama Wawancara: ' : 'Dimensi Variabel Kuesioner: '} {group.dimensi}
                               </h4>
                             </div>
                           );
@@ -902,7 +902,7 @@ ${coverText}`;
                                   </tr>
                                 </thead>
                                 <tbody>
-                                  {[...Array(19)].map((_, rIdx) => (
+                                  {([...Array(19)].map(() => null)).map((stmt, rIdx) => (
                                     <tr key={rIdx} className="bg-[#181d27] border-b border-slate-700 hover:bg-[#1e2432] transition-colors print:h-[13.5mm]">
                                       {[...Array(colCount)].map((_, cIdx) => (
                                         <td key={cIdx} className="p-4 text-[13px] font-medium text-slate-400 border-r border-slate-800 text-center">
@@ -969,7 +969,7 @@ ${coverText}`;
                                   <thead>
                                     <tr>
                                       <th colSpan={colCount} className="bg-[#1e2432] p-5 text-[15px] font-bold text-white border-b border-slate-700 tracking-wide text-center">
-                                        Tabel Lampiran Detail Observasi: {item.parameter}
+                                        {mainTeknik.toLowerCase() === 'kuesioner' ? 'Tabel Draf Pernyataan Indikator: ' : 'Tabel Lampiran Detail Observasi: '} {item.parameter}
                                       </th>
                                     </tr>
                                     <tr className="bg-[#222836] border-b border-slate-700">
@@ -981,11 +981,11 @@ ${coverText}`;
                                     </tr>
                                   </thead>
                                   <tbody>
-                                    {[...Array(19)].map((_, rIdx) => (
+                                    {(mainTeknik.toLowerCase() === 'kuesioner' && item.pernyataan ? item.pernyataan : [...Array(19)].map(() => null)).map((stmt, rIdx) => (
                                       <tr key={rIdx} className="bg-[#181d27] border-b border-slate-700 hover:bg-[#1e2432] transition-colors print:h-[13.5mm]">
                                         {[...Array(colCount)].map((_, cIdx) => (
-                                          <td key={cIdx} className="p-4 text-[13px] font-medium text-slate-400 border-r border-slate-800 text-center">
-                                            {cIdx === 0 ? rIdx + 1 : <div className="w-full flex items-center justify-center h-full"><span className="inline-block border-b-2 border-dotted border-slate-600 w-11/12 translate-y-1">&nbsp;</span></div>}
+                                          <td key={cIdx} className={`p-4 text-[13px] font-medium ${cIdx === 1 && stmt ? 'text-slate-200 text-left' : 'text-slate-400 text-center'} border-r border-slate-800`}>
+                                            {cIdx === 0 ? rIdx + 1 : (cIdx === 1 && stmt) ? <div className="leading-relaxed">{stmt}</div> : <div className="w-full flex items-center justify-center h-full"><span className="inline-block border-b-2 border-dotted border-slate-600 w-11/12 translate-y-1">&nbsp;</span></div>}
                                           </td>
                                         ))}
                                       </tr>
