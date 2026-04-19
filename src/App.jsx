@@ -60,7 +60,7 @@ Tugas:
 4. Setiap parameter WAJIB mencantumkan Satuan / Catatan Validasi teknis di lapangan.
 5. Siapkan juga struktur header Tabel Primer dan berikan 3 sampel mock-data pengisian observasi.
 6. Untuk SETIAP dimensi dan item parameter, WAJIB definisikan array \`lampiranHeaders\` berisi judul kolom spesifik untuk formulir lampiran. **Jumlah kolom BEBAS** sesuai kerumitan data (misal butuh 5 kolom: ["Titik", "Utara", "Timur", "Selatan", "Barat"]). JANGAN gunakan header generik!
-7. Untuk SETIAP dimensi dan item parameter, WAJIB definisikan string \`lampiranInstruksi\` yang berisi SATU kalimat metodologi ringkas (SOP) tentang "bagaimana cara mengukur/mengobservasi" parameter tersebut di lapangan.
+7. Untuk SETIAP dimensi dan parameter, WAJIB definisikan string \`lampiranInstruksi\` yang berfokus HANYA pada SOP cara teknis mengisi tabel, cara mengukur, dan satuan yang digunakan. (contoh: "Hitung sampel menggunakan tally counter dalam satuan individu dan catat distribusinya masing-masing.").
 
 WAJIB KEMBALIKAN HANYA OBJEK JSON MURNI YANG VALID. DILARANG MEMBERIKAN TEKS PENDAHULUAN ATAU BACKTICKS:
 {
@@ -831,7 +831,7 @@ ${coverText}`;
                             </table>
                             <div className="mt-4 px-2 pb-4 text-left text-slate-400 print:text-[#333]">
                                <p className="text-[11px] print:text-[10px] font-medium leading-relaxed italic border-l-2 border-[#0ea5e9] print:border-[#333] pl-3">
-                                 * <strong>SOP Observasi Dimensi: {group.dimensi}.</strong> {group.lampiranInstruksi ? <span className="text-[#0ea5e9]">Petunjuk Teknis: {group.lampiranInstruksi} | Aturan Umum: </span> : ''}Gunakan alat tulis tahan air. Berikan coretan tunggal (<s>salah</s>) jika salah catat. Pastikan data tercatat secara faktual.
+                                 * <strong>SOP Pengukuran:</strong> <span className={group.lampiranInstruksi ? "text-[#0ea5e9] print:text-[#333]" : ""}>{group.lampiranInstruksi || `Lakukan observasi dan pengisian data untuk dimensi ${group.dimensi} berdasarkan pengukuran di lapangan.`}</span>
                                </p>
                             </div>
                           </div>
@@ -873,7 +873,7 @@ ${coverText}`;
                               </table>
                               <div className="mt-4 px-2 pb-4 text-left text-slate-400 print:text-[#333]">
                                  <p className="text-[11px] print:text-[10px] font-medium leading-relaxed italic border-l-2 border-[#0ea5e9] print:border-[#333] pl-3">
-                                   * <strong>SOP Parameter Spesifik: {item.parameter}.</strong> {item.lampiranInstruksi ? <span className="text-[#0ea5e9]">Petunjuk Teknis: {item.lampiranInstruksi} | Aturan Umum: </span> : ''}Gunakan alat tulis tahan air. Berikan coretan tunggal (<s>salah</s>) jika salah catat. Jaga integritas log lapangan dengan menulis secara terukur.
+                                   * <strong>SOP Pengukuran:</strong> <span className={item.lampiranInstruksi ? "text-[#0ea5e9] print:text-[#333]" : ""}>{item.lampiranInstruksi || `Lakukan pengukuran untuk parameter ${item.parameter} dan catat nilainya di kolom yang sesuai.`}</span>
                                  </p>
                               </div>
                             </div>
