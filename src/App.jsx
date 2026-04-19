@@ -889,7 +889,7 @@ ${coverText}`;
                           onClick={exportLampiranToExcel} 
                           className="bg-[#10b981]/10 text-[#34d399] border border-[#10b981]/30 hover:bg-[#10b981] hover:text-white px-8 py-3.5 rounded-xl font-bold text-[12px] uppercase tracking-widest flex items-center gap-3 transition-all outline-none shadow-xl shadow-[#10b981]/10"
                         >
-                           <FileSpreadsheet className="w-5 h-5"/> EXPORT KE EXCEL (XLS)
+                           <FileSpreadsheet className="w-5 h-5"/> EXPORT KE EXCEL (XLSX)
                         </button>
                      </div>
 
