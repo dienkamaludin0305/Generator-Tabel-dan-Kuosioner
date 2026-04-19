@@ -57,13 +57,18 @@ Konteks Alat / Tambahan: "{konteks}"
 Program Studi Mahasiswa: "{prodi}"
 
 Tugas:
-1. Ekstrak dan definisikan Variabel Utama penelitian (X, Y, Z, M jika ada). Jelaskan setiap variabel secara PADAT, LUGAS, dan RINGKAS (Maksimal 2 Kalimat).
-2. Rancang "Tabel Tally Sheet" (Observasi Lapangan) YANG DEEP DAN TEKNIS.
-3. Parameter harus dikelompokkan hierarkis ke dalam "Dimensi".
-4. Setiap parameter WAJIB mencantumkan Satuan / Catatan Validasi teknis di lapangan.
-5. Siapkan juga struktur header Tabel Primer dan berikan 3 sampel mock-data pengisian observasi.
-6. Untuk SETIAP dimensi dan item parameter, WAJIB definisikan array \`lampiranHeaders\` berisi judul kolom spesifik untuk formulir lampiran. **Jumlah kolom BEBAS** sesuai kerumitan data (misal butuh 5 kolom: ["Titik", "Utara", "Timur", "Selatan", "Barat"]). JANGAN gunakan header generik!
-7. Untuk SETIAP dimensi dan parameter, WAJIB definisikan string \`lampiranInstruksi\` yang berfokus HANYA pada SOP cara teknis mengisi tabel, cara mengukur, dan satuan yang digunakan. (contoh: "Hitung sampel menggunakan tally counter dalam satuan individu dan catat distribusinya masing-masing.").
+1. Ekstrak dan definisikan Variabel Utama penelitian (X, Y, Z, M jika ada). Jelaskan setiap variabel secara PADAT, LUGAS, dan RINGKAS.
+2. Rancang instrumen spesifik secara TEKNIS dan MENDALAM yang merupakan derivasi/turunan langsung dari Variabel tersebut untuk menjawab rumusan masalah. Desain instrumen harus SANGAT MENGIKUTI pola Teknik Pengambilan Data ("{teknik}"):
+   - Jika Wawancara: Hasilkan daftar pertanyaan wawancara mendalam yang terstruktur untuk menggali indikator variabel.
+   - Jika Kuesioner: Hasilkan susunan pernyataan skalar (misal Likert) yang secara jitu memproksi fenomena probabilitas.
+   - Jika Studi Dokumentasi: Hasilkan daftar kebutuhan arsip/dokumen legal formal dan poin ekstraksinya.
+   - Jika Eksperimen: Hasilkan matriks perlakuan kelompok kontrol/intervensi dan metrik efeknya.
+   - Jika Observasi: Hasilkan susunan parameter pengamatan fisik lapangan, kuadran, dsb.
+3. Instrumen/Parameter harus dikelompokkan hierarkis ke dalam "Dimensi".
+4. Setiap item/parameter WAJIB mencantumkan Satuan ukur / Skala / Tolok Ukur Validasi / Target Subjek.
+5. Siapkan juga struktur header Tabel Primer dan berikan 3 sampel mock-data pengisian.
+6. Untuk SETIAP dimensi dan item parameter, WAJIB definisikan array \`lampiranHeaders\` berisi judul kolom spesifik. Jika wawancara: ["Aktor/Subjek", "Pertanyaan Detail", "Inti Jawaban", "Catatan Peneliti"]. Jika kuesioner: ["Profil", "SS", "S", "N", "TS", "STS"]. JANGAN gunakan header generik!
+7. Untuk SETIAP dimensi dan parameter, WAJIB definisikan string \`lampiranInstruksi\` yang berisi detail SOP murni teknis cara mengeksekusi metode tersebut (contoh: "Gali narasi mendalam tanpa memberikan impresi bias", atau "Kirimkan ke minimum 50 responden via GForm").
 
 WAJIB KEMBALIKAN HANYA OBJEK JSON MURNI YANG VALID. DILARANG MEMBERIKAN TEKS PENDAHULUAN ATAU BACKTICKS:
 {
