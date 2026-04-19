@@ -402,6 +402,8 @@ ${coverText}`;
     { id: 2, label: 'DATA PRIMER', title: 'Titik Data Primer', desc: 'Kompilasi Digital Rekam Jejak Lapangan.', icon: <Database className="w-5 h-5"/> },
     { id: 3, label: 'ANALISIS BAB 4', title: 'Tabel Analisis Bab 4', desc: 'Rekapitulasi absolut komposit visual.', icon: <Table2 className="w-5 h-5"/> }
   ];
+  const activeTeknik = researchData.teknik || 'Observasi (Pengamatan)';
+  const mainTeknik = activeTeknik.split(' ')[0];
 
   return (
     <div className="flex min-h-screen font-sans text-slate-800 relative z-0">
@@ -638,8 +640,8 @@ ${coverText}`;
              <div className="bg-white rounded-[2rem] print:rounded-none shadow-sm print:shadow-none border border-slate-200/60 print:border-none print:bg-transparent overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300">
                <div className="p-8 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 print:hidden">
                  <div>
-                   <h3 className="text-2xl font-black text-[#1a2332]">Tabel Tally Sheet Observasi</h3>
-                   <p className="text-sm font-semibold text-slate-400 mt-1 max-w-2xl">Penjabaran komponen data teknis yang wajib dibawa dan diisi di Plot lapangan penelitian.</p>
+                   <h3 className="text-2xl font-black text-[#1a2332]">Tabel Tally Sheet {mainTeknik}</h3>
+                   <p className="text-sm font-semibold text-slate-400 mt-1 max-w-2xl">Penjabaran komponen data teknis yang wajib dibawa dan direkam di lapangan penelitian.</p>
                  </div>
                  <button onClick={() => setCurrentStep(2)} className="bg-[#f97316] text-white px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 hover:bg-[#ea580c] transition-all shadow-md shrink-0 outline-none">Lanjut Transkrip Data <ChevronRight className="w-4 h-4"/></button>
                </div>
@@ -663,16 +665,16 @@ ${coverText}`;
                     <div className="p-8 bg-[#181d27] rounded-3xl shadow-xl shadow-slate-900/10 border border-slate-700">
                    <div className="mb-4">
                      <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                       <ListChecks className="text-[#38bdf8] w-6 h-6" /> Tabel Tally Sheet (Lembar Observasi Lapangan)
+                       <ListChecks className="text-[#38bdf8] w-6 h-6" /> Tabel Tally Sheet (Lembar {mainTeknik} Target)
                      </h3>
                      <p className="text-slate-400 italic text-[13px] mt-2 font-medium max-w-4xl">
-                       Tabel ini adalah instrumen pengumpulan data teknis yang kelak akan dibawa peneliti ke wilayah {researchData.judul ? `"${researchData.judul.substring(0,60)}"` : 'hutan / wilayah studi'} untuk diisi setiap kali melakukan pencatatan titik stasiun/plot.
+                       Tabel ini adalah instrumen pengumpulan data teknis yang kelak akan diproses oleh peneliti untuk studi {researchData.judul ? `"${researchData.judul.substring(0,60)}"` : 'lapangan/studi'} dalam setiap eksekusi pengambilan data.
                      </p>
                    </div>
 
                    <div className="mt-8 mb-6">
                      <h4 className="font-bold text-white text-[15px] tracking-wide">
-                       Tabel 1: Instrumen Pengukuran Observasi Teknis (Variabel X dan Y)
+                       Tabel 1: Instrumen Pengambilan Data {mainTeknik} Teknis (Variabel Penelitian)
                      </h4>
                      <div className="text-slate-300 text-[13px] mt-3 flex flex-wrap gap-x-8 gap-y-4 font-normal">
                        <span>Stasiun/Plot Pengamatan : <span className="text-slate-500">________________________</span></span>
@@ -804,7 +806,7 @@ ${coverText}`;
                       </div>
 
                       <h3 className="text-2xl font-black text-white mb-8 text-center uppercase tracking-widest drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]">
-                        [ DOKUMEN LAMPIRAN KHUSUS OBSERVASI ]
+                        [ DOKUMEN LAMPIRAN KHUSUS {researchData.teknik.toUpperCase()} ]
                       </h3>
 
                     {observasiData.map(group => {
@@ -844,7 +846,7 @@ ${coverText}`;
                             </table>
                             <div className="mt-4 px-2 pb-4 text-left text-slate-400 print:text-[#333]">
                                <p className="text-[11px] print:text-[10px] font-medium leading-relaxed italic border-l-2 border-[#0ea5e9] print:border-[#333] pl-3">
-                                 * <strong>SOP Pengukuran:</strong> <span className={group.lampiranInstruksi ? "text-[#0ea5e9] print:text-[#333]" : ""}>{group.lampiranInstruksi || `Lakukan observasi dan pengisian data untuk dimensi ${group.dimensi} berdasarkan pengukuran di lapangan.`}</span>
+                                 * <strong>SOP Teknis:</strong> <span className={group.lampiranInstruksi ? "text-[#0ea5e9] print:text-[#333]" : ""}>{group.lampiranInstruksi || `Lakukan eksekusi ${mainTeknik.toLowerCase()} data untuk dimensi ${group.dimensi}.`}</span>
                                </p>
                             </div>
                           </div>
@@ -886,7 +888,7 @@ ${coverText}`;
                               </table>
                               <div className="mt-4 px-2 pb-4 text-left text-slate-400 print:text-[#333]">
                                  <p className="text-[11px] print:text-[10px] font-medium leading-relaxed italic border-l-2 border-[#0ea5e9] print:border-[#333] pl-3">
-                                   * <strong>SOP Pengukuran:</strong> <span className={item.lampiranInstruksi ? "text-[#0ea5e9] print:text-[#333]" : ""}>{item.lampiranInstruksi || `Lakukan pengukuran untuk parameter ${item.parameter} dan catat nilainya di kolom yang sesuai.`}</span>
+                                   * <strong>SOP Teknis:</strong> <span className={item.lampiranInstruksi ? "text-[#0ea5e9] print:text-[#333]" : ""}>{item.lampiranInstruksi || `Lakukan transkripsi detail ${mainTeknik.toLowerCase()} untuk menentukan parameter ${item.parameter}.`}</span>
                                  </p>
                               </div>
                             </div>
