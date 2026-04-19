@@ -8,6 +8,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import * as pdfjsLib from 'pdfjs-dist';
 import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.mjs?url';
 import mammoth from 'mammoth';
+import * as XLSX from 'xlsx';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
@@ -366,36 +367,27 @@ ${coverText}`;
   };
 
   const exportLampiranToExcel = () => {
-    const section = document.getElementById("lampiran-section");
-    if (!section) return;
-    const tables = section.querySelectorAll('table');
-    if (tables.length === 0) return;
+    const containerDiv = document.getElementById("lampiranContainer");
+    if (!containerDiv) return;
     
-    let tableHtml = '';
-    tables.forEach(table => {
-       tableHtml += '<br/>';
-       tableHtml += table.outerHTML;
+    const tables = containerDiv.querySelectorAll("table");
+    if (tables.length === 0) return;
+
+    const workbook = XLSX.utils.book_new();
+
+    tables.forEach((table, index) => {
+      let title = `Catatan_Lampiran_${index + 1}`;
+      const firstTh = table.querySelector("thead tr th");
+      if (firstTh && firstTh.colSpan > 1) {
+        title = firstTh.innerText.replace(/Tabel Lampiran(.)+:/i, "").trim().substring(0, 31); 
+        title = title.replace(/[\\\/\?\*\[\]]/g, ''); // Sheet names cannot have special chars
+      }
+      
+      const worksheet = XLSX.utils.table_to_sheet(table);
+      XLSX.utils.book_append_sheet(workbook, worksheet, title || `Sektor_${index + 1}`);
     });
 
-    const excelFile = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
-    <head>
-      <meta charset="utf-8">
-      <style>
-        table { border-collapse: collapse; margin-bottom: 20px; }
-        th { background-color: #222836; color: #fff; border: 1px solid #777; padding: 10px; font-weight: bold; text-align: center; }
-        td { border: 1px solid #777; padding: 10px; color: #111; }
-      </style>
-    </head>
-    <body>${tableHtml}</body></html>`;
-
-    const blob = new Blob([excelFile], { type: 'application/vnd.ms-excel' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `Tabel_Lampiran_Observasi.xls`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    XLSX.writeFile(workbook, "Tabel_Lampiran_Observasi.xlsx");
   };
 
   // Exact UI Colors
