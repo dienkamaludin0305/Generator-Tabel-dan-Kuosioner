@@ -9,6 +9,7 @@ import * as pdfjsLib from 'pdfjs-dist';
 import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.mjs?url';
 import mammoth from 'mammoth';
 import * as XLSX from 'xlsx';
+import html2pdf from 'html2pdf.js';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
@@ -50,6 +51,46 @@ export default function App() {
     });
   };
 
+  const getFormatJsonTemplate = (teknik) => {
+    const isWawancara = teknik.toLowerCase().includes('wawancara');
+    const isKuesioner = teknik.toLowerCase().includes('kuesioner');
+    
+    let itemExample = "";
+    if (isKuesioner) {
+      itemExample = `        { "id": "p1", "parameter": "Tutupan Tajuk / Sikap Responden", "satuan": "Skala", "pernyataan": [ { "teks": "Saya rutin menggunakan alat sesuai SOP", "sifat": "Favorable", "skor": "SS=5, S=4, N=3, TS=2, STS=1" }, { "teks": "SOP sulit dipahami", "sifat": "Unfavorable", "skor": "SS=1, S=2, N=3, TS=4, STS=5" } ] }`;
+    } else if (isWawancara) {
+      itemExample = `        { "id": "p1", "parameter": "Sistem Informasi Manajemen", "satuan": "-", "lampiranInstruksi": "Probing mendalam", "pertanyaan": ["Bagaimana efektivitas sistem Anda?", "Apa tantangan terbesarnya?"] }`;
+    } else {
+      itemExample = `        { "id": "p1", "parameter": "Tutupan Tajuk", "satuan": "%", "lampiranInstruksi": "Bidik tegak lurus", "lampiranHeaders": ["Sektor Titik", "Skor A", "Skor B", "Catatan Khusus"] }`;
+    }
+
+    return `{
+  "variabel_penelitian": [
+    { "jenis": "Variabel Utama", "nama": "Nama Variabel", "penjelasan": "Penjelasan padat." }
+  ],
+  "observasi": [
+    {
+      "dimensi": "Dimensi 1",
+      "lampiranInstruksi": "SOP Instruksi...",
+      ${(!isKuesioner && !isWawancara) ? '"lampiranHeaders": ["Lokasi Titik", "Utara", "Timur", "Catatan"],' : ''}
+      "items": [
+${itemExample}
+      ]
+    }
+  ],
+  "primerHeaders": [
+    { "code": "P1", "desc": "Indikator 1" },
+    { "code": "P2", "desc": "Indikator 2" }
+  ],
+  "dummyPrimer": [
+    { "id": 1, "responden": "Target 01", "P1": 85, "P2": 15 },
+    { "id": 2, "responden": "Target 02", "P1": 80, "P2": 12 },
+    { "id": 3, "responden": "Target 03", "P1": 70, "P2": 10 }
+    // ... LANJUTKAN HINGGA 30 DATA SAMPEL ...
+  ]
+}`;
+  };
+
   const PROMPT_TEMPLATE = `
 Anda adalah seorang Ahli Metodologi Penelitian Lapangan Teknis. 
 Khusus untuk analisis kualitatif dan rancangan wawancara, Anda BERPERAN dan MENGACU ketat pada model Miles, Huberman, dan Saldana (Transkripsi Data secara Verbatim -> Kondensasi/Reduksi Data via Coding & Grouping -> Penyajian Data -> Penarikan Kesimpulan & Triangulasi). Ingat selalu prosedur ini dalam setiap instrumen yang Anda rancang.
@@ -66,41 +107,19 @@ Tugas:
 1. Ekstrak dan definisikan Variabel Utama penelitian (X, Y, Z, M jika ada). Jelaskan setiap variabel secara PADAT, LUGAS, dan RINGKAS.
 2. Rancang instrumen spesifik secara TEKNIS dan MENDALAM yang merupakan derivasi/turunan langsung dari Variabel tersebut untuk menjawab rumusan masalah. Desain instrumen harus SANGAT MENGIKUTI pola Teknik Pengambilan Data ("{teknik}"):
    - Jika Wawancara: Hasilkan daftar pertanyaan wawancara mendalam yang SANGAT SPESIFIK membahas masing-masing Variabel (X, Y, Z, M). Setiap pertanyaan harus menyebutkan atau berkaitan langsung dengan konteks sub-variabel / dimensi secara eksplisit. BUKAN pertanyaan generik seperti "Bagaimana pengalaman Anda?". Gunakan teknik 5W+1H (fokus 'Mengapa' dan 'Bagaimana') dan teknik Probing terarah. JANGAN HASILKAN FORMAT TABEL UNTUK WAWANCARA.
-   - Jika Kuesioner: Operasionalisasikan kerangka variabel (X, Y, Z, M) menjadi indikator dengan SANGAT MENDALAM. Susun pernyataan kuesioner yang SANGAT TAJAM dan EKSPLISIT untuk membedah inti fenomena. SETIAP pernyataan WAJIB memuat konteks variabelnya secara langsung agar tidak bias/membingungkan saat uji korelasi statistik! Gunakan bahasa tingkat lanjut (advanced) namun terukur. HINDARI pernyataan dangkal/generik! Tipe Skala: {skala}. Jika Guttman: susun proposisi faktual tegas (Ya/Tidak). Proporsi SEIMBANG antara Favorable (Positif) dan Unfavorable (Negatif). Dilarang bermakna ganda (bukan double-barreled). WAJIB BUAT MINIMAL 10 PERNYATAAN UNTUK SETIAP VARIABEL / TOPIK dan simpan di dalam array kumpulan *String* bernama "pernyataan" di dalam object item (sejajar dengan id dan parameter)!
+   - Jika Kuesioner: Operasionalisasikan kerangka variabel (X, Y, Z, M) menjadi indikator dengan SANGAT MENDALAM. Susun pernyataan kuesioner yang SANGAT TAJAM dan EKSPLISIT untuk membedah inti fenomena. SETIAP pernyataan WAJIB memuat konteks variabelnya secara langsung agar tidak bias/membingungkan saat uji korelasi statistik! Gunakan bahasa tingkat lanjut (advanced) namun terukur. HINDARI pernyataan dangkal/generik! Tipe Skala: {skala}. Jika Guttman: susun proposisi faktual tegas (Ya/Tidak). WAJIB BUAT MINIMAL 10 PERNYATAAN UNTUK SETIAP VARIABEL / TOPIK. Sebagai implementasi Codebook dan Scoring Guide, tiap item harus proporsional Favorable (Positif) dan Unfavorable (Negatif). Simpan pernyataan di dalam array kumpulan *Objek* bernama "pernyataan" dengan format { "teks": "Pernyataan kalimat...", "sifat": "Favorable/Unfavorable", "skor": "SS=5... atau SS=1..." } di dalam object item (sejajar dengan id dan parameter). Pastikan item negatif dibalik skornya otomatis pada pedoman penskoran!
    - Jika Studi Dokumentasi: Hasilkan daftar kebutuhan arsip/dokumen legal formal dan poin ekstraksinya.
    - Jika Eksperimen: Hasilkan matriks perlakuan kelompok kontrol/intervensi dan metrik efeknya.
    - Jika Observasi: Hasilkan susunan parameter pengamatan fisik lapangan, kuadran, dsb.
 3. Instrumen/Parameter harus dikelompokkan hierarkis ke dalam "Dimensi" yang mencerminkan Variabel Studi.
 4. Setiap item/parameter WAJIB mencantumkan Satuan ukur / Skala / Tolok Ukur Validasi / Target Subjek.
-5. Siapkan juga struktur header Tabel Primer dan berikan 3 sampel mock-data pengisian.
+5. Siapkan struktur header Tabel Primer dan WAJIB hasilkan 30 sampel mock-data skenario lapangan (dummyData) yang distribusinya logis, nyata, dan bervariasi pada bagian dummyPrimer.
 6. KHUSUS WAWANCARA: PADA "observasi", JANGAN buat \`lampiranHeaders\`! Gantilah menjadi array \`pertanyaan\` di dalam \`items\`. Isi \`pertanyaan\` WAJIB berupa kumpulan *String* kalimat pertanyaan wawancara spesifik yang langsung menyentuh esensi Variabel Penelitian, BUKAN sekadar *copy-paste* template generik. (Dilarang bentuk tabel). WAJIB MENGHASILKAN MINIMAL 10 PERTANYAAN UNTUK SETIAP TOPIK / PARAMETER!
    - UNTUK METODE LAIN: Untuk SETIAP dimensi dan item parameter, WAJIB definisikan array \`lampiranHeaders\` berisi judul kolom spesifik. Jika Kuesioner, sesuaikan \`lampiranHeaders\` dengan pilihan {skala} (Misal Likert: ["Pernyataan", "SS", "S", "N", "TS", "STS"] atau Guttman: ["Pernyataan", "Ya", "Tidak"]). JANGAN gunakan header generik!
 7. Untuk SETIAP dimensi dan parameter, WAJIB definisikan string \`lampiranInstruksi\` yang berisi detail SOP. (Contoh Kuesioner: "Berikan penjelasan di awal sebelum responden mensubmit; Jamin Anonimitas").
 
 WAJIB KEMBALIKAN HANYA OBJEK JSON MURNI YANG VALID. DILARANG MEMBERIKAN TEKS PENDAHULUAN ATAU BACKTICKS:
-{
-  "variabel_penelitian": [
-    { "jenis": "Variabel X (Independen)", "nama": "Nama Variabel", "penjelasan": "Penjelasan padat." }
-  ],
-  "observasi": [
-    {
-      "dimensi": "Dimensi Profil Kanopi",
-      "lampiranInstruksi": "Gunakan densiometer pada 4 arah mata angin di setiap plot dan catat persentasenya rata-rata.",
-      "lampiranHeaders": ["Lokasi Titik", "Kuadran Utara", "Kuadran Timur", "Kuadran Selatan", "Kuadran Barat", "Catatan Keseluruhan"],
-      "items": [
-        { "id": "p1", "parameter": "Tutupan Tajuk", "satuan": "%", "lampiranInstruksi": "Bidik densiometer secara tegak lurus searah dada pengamat.", "lampiranHeaders": ["Sektor Titik", "Skor A", "Skor B", "Catatan Khusus"], "pertanyaan": ["Bagaimana dampak dari perubahan tutupan tajuk ini terhadap pertumbuhan vegetasi tingkat semai di bawahnya?", "Mengapa spesies tertentu di kuadran ini memiliki tingkat persentase yang jauh lebih rendah menurut pengamatan visual saudara?", "...(TETAP LANJUTKAN HINGGA MENCAPAI MINIMAL 10 PERTANYAAN MENDALAM KHUSUS PARAMETER INI)..."], "pernyataan": ["(JIKA KUESIONER: ISI MINIMAL 10 PERNYATAAN TAJAM UNTUK PARAMETER/VARIABEL INI)", "(CONTOH: Saya merasa sangat terbantu oleh SOP yang ada)"] },
-        { "id": "p2", "parameter": "Tinggi Dominan", "satuan": "m", "lampiranInstruksi": "Gunakan clinometer untuk mengukur sudut puncak dan pangkal dari jarak yang ditentukan.", "lampiranHeaders": ["Spesies", "Jarak", "Sudut Puncak", "Sudut Pangkal", "Estimasi (m)"], "pertanyaan": ["Apa yang menyebabkan perbedaan tinggi dominan pada area ini dibandingkan area sebelumnya?", "...(WAJIB ADA MINIMAL 10 PERTANYAAN UNTUK ITEM KEDUA INI JUGA)..."], "pernyataan": ["(JIKA KUESIONER: WAJIB ISI MINIMAL 10 PERNYATAAN UNTUK ITEM KEDUA/VARIABEL Y INI JUGA!)", "(CONTOH: SOP yang diberikan seringkali sulit dipahami)"] }
-      ]
-    }
-  ],
-  "primerHeaders": [
-    { "code": "P1", "desc": "Tutupan Tajuk (%)" },
-    { "code": "P2", "desc": "Tinggi Dominan (m)" }
-  ],
-  "dummyPrimer": [
-    { "id": 1, "responden": "Stasiun 1", "P1": 85, "P2": 15 }
-  ]
-}
+{format_json}
 `;
 
   const generateDetailingFallback = (judul = "Analisis Stratifikasi Vegetasi", prodi = "Biologi", teknik = "Observasi", skala = "") => {
@@ -117,8 +136,8 @@ WAJIB KEMBALIKAN HANYA OBJEK JSON MURNI YANG VALID. DILARANG MEMBERIKAN TEKS PEN
           dimensi: isK ? `Dimensi Konstruk Kuesioner (Skala ${isG ? 'Guttman' : 'Likert'})` : "Dimensi Observasi Umum",
           lampiranInstruksi: isK ? `SOP Kuesioner: Pastikan responden memahami bahwa skala yang dipakai adalah ${isG ? 'Ya / Tidak' : 'SS / S / N / TS / STS'} sebelum mereka memberikan jawaban. Jamin Anonimitas.` : "SOP Pengambilan Data: Lakukan pengukuran/pengisian instrumen secara cermat berdasarkan parameter yang ditetapkan.",
           items: [
-            { id: "p1", parameter: isK ? `Indikator Konstruk 1: Sikap Positif Responden` : "Indikator Target Utama 1", satuan: isK ? (isG ? "Biner" : "Poin Ordinal") : "Skala Validasi / Kategori", lampiranInstruksi: isK ? "Jangan memberi arahan yang bias kepada responden." : "Identifikasi sampel target sedekat mungkin.", pernyataan: isK ? ["Guru membimbing materi dengan sangat jelas.", "Lingkungan kerja kondusif untuk belajar."] : [], pertanyaan: ["Terkait indikator ini, bagaimana dampaknya secara praktis?", "Solusi apa yang bisa ditawarkan untuk mengoptimalkan indikator ini?"] },
-            { id: "p2", parameter: isK ? `Indikator Konstruk 2: Evaluasi Faktor Hambatan` : "Indikator Target Utama 2", satuan: isK ? (isG ? "Biner" : "Poin Ordinal") : "Skala Validasi / Kategori", lampiranInstruksi: isK ? "Jelaskan definisi istilah sulit jika responden bingung." : "Lakukan pencatatan frekuensi kemunculan.", pernyataan: isK ? ["Alat K3 yang tersedia sudah kedaluwarsa.", "Terjadi kesulitan mendapatkan izin akses ruangan."] : [], pertanyaan: ["Bagaimana fluktuasi target memengaruhi kinerja Anda?", "Faktor dominan apa yang menghambat proses terkait indikator ini?"] }
+            { id: "p1", parameter: isK ? `Indikator Konstruk 1: Sikap Positif Responden` : "Indikator Target Utama 1", satuan: isK ? (isG ? "Biner" : "Poin Ordinal") : "Skala Validasi / Kategori", lampiranInstruksi: isK ? "Jangan memberi arahan yang bias kepada responden." : "Identifikasi sampel target sedekat mungkin.", pernyataan: isK ? [{teks: "Guru membimbing materi dengan sangat jelas.", sifat: "Favorable", skor: "SS=5..."}, {teks: "Banyak penjelasan yang berbelit-belit.", sifat: "Unfavorable", skor: "SS=1..."}] : [], pertanyaan: ["Terkait indikator ini, bagaimana dampaknya secara praktis?", "Solusi apa yang bisa ditawarkan untuk mengoptimalkan indikator ini?"] },
+            { id: "p2", parameter: isK ? `Indikator Konstruk 2: Evaluasi Faktor Hambatan` : "Indikator Target Utama 2", satuan: isK ? (isG ? "Biner" : "Poin Ordinal") : "Skala Validasi / Kategori", lampiranInstruksi: isK ? "Jelaskan definisi istilah sulit jika responden bingung." : "Lakukan pencatatan frekuensi kemunculan.", pernyataan: isK ? [{teks: "Alat K3 yang tersedia sudah kedaluwarsa.", sifat: "Unfavorable", skor: "SS=1..."}, {teks: "Lingkungan kerja kondusif.", sifat: "Favorable", skor: "SS=5..."}] : [], pertanyaan: ["Bagaimana fluktuasi target memengaruhi kinerja Anda?", "Faktor dominan apa yang menghambat proses terkait indikator ini?"] }
           ]
         }
       ],
@@ -295,7 +314,8 @@ ${coverText}`;
         .replace('{teknik}', researchData.teknik || 'Observasi (Pengamatan)')
         .replace('{skala}', researchData.skalaKuesioner || 'Skala Likert (5 Poin: SS-STS)')
         .replace('{konteks}', currentKonteks)
-        .replace('{prodi}', currentProfile.prodi);
+        .replace('{prodi}', currentProfile.prodi)
+        .replace('{format_json}', getFormatJsonTemplate(researchData.teknik || 'Observasi (Pengamatan)'));
 
       let responseText;
       try {
@@ -386,7 +406,7 @@ ${coverText}`;
   };
 
   const exportLampiranToExcel = () => {
-    const containerDiv = document.getElementById("lampiranContainer");
+    const containerDiv = document.getElementById("lampiran-section");
     if (!containerDiv) return;
 
     const tables = containerDiv.querySelectorAll("table");
@@ -407,6 +427,53 @@ ${coverText}`;
     });
 
     XLSX.writeFile(workbook, "Tabel_Lampiran_Observasi.xlsx");
+  };
+
+  const handleExportPDF = (elementId, filename) => {
+    const el = document.getElementById(elementId);
+    if (!el) {
+      setError("Elemen tidak ditemukan untuk diexport PDF.");
+      return;
+    }
+    
+    setIsLoading(true);
+    const opt = {
+      margin:       0.3,
+      filename:     filename || 'Laporan_Analisis.pdf',
+      image:        { type: 'jpeg', quality: 0.98 },
+      html2canvas:  { scale: 2, useCORS: true },
+      jsPDF:        { unit: 'in', format: 'a4', orientation: 'landscape' },
+      pagebreak:    { mode: 'avoid-all' }
+    };
+
+    html2pdf().set(opt).from(el).toPdf().get('pdf').then((pdf) => {
+      const blob = pdf.output('blob');
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = opt.filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }).then(() => {
+      setIsLoading(false);
+    }).catch(err => {
+      console.error(err);
+      setError("Gagal Export PDF: " + err.message);
+      setIsLoading(false);
+    });
+  };
+
+  const handleExportBab4Excel = () => {
+    try {
+      const wb = XLSX.utils.book_new();
+      const wsBab4 = XLSX.utils.aoa_to_sheet([tableHeaders, ...tableRows]);
+      XLSX.utils.book_append_sheet(wb, wsBab4, "Analisis Bab 4");
+      XLSX.writeFile(wb, "Data_Analisis_Bab_4.xlsx");
+    } catch(err) {
+      setError("Gagal Export Excel Bab 4: " + err.message);
+    }
   };
 
   // Exact UI Colors
@@ -694,7 +761,7 @@ ${coverText}`;
 
           {/* PAGE STEP 1: TALLY SHEET */}
           {currentStep === 1 && (
-            <div className="bg-white rounded-[2rem] print:rounded-none shadow-sm print:shadow-none border border-slate-200/60 print:border-none print:bg-transparent overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300">
+            <div id="tally-sheet-main" className="bg-white rounded-[2rem] print:rounded-none shadow-sm print:shadow-none border border-slate-200/60 print:border-none print:bg-transparent overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300">
               <div className="p-8 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 print:hidden">
                 <div>
                   <h3 className="text-2xl font-black text-[#1a2332]">Tabel Tally Sheet {mainTeknik}</h3>
@@ -837,7 +904,7 @@ ${coverText}`;
                     )}
 
                     <div className="mt-8 flex justify-end">
-                      <button onClick={() => window.print()} className="bg-slate-700 text-white border border-slate-600 px-6 py-2.5 rounded-xl font-bold text-[10px] uppercase tracking-widest flex items-center gap-2 hover:bg-slate-600 hover:text-cyan-200 transition-all outline-none shadow-xl drop-shadow-md">
+                      <button onClick={() => handleExportPDF('tally-sheet-main', 'Formulir_Lapangan.pdf')} className="bg-slate-700 text-white border border-slate-600 px-6 py-2.5 rounded-xl font-bold text-[10px] uppercase tracking-widest flex items-center gap-2 hover:bg-slate-600 hover:text-cyan-200 transition-all outline-none shadow-xl drop-shadow-md">
                         <Download className="w-4 h-4" /> DOWNLOAD/CETAK FORMULIR LAPANGAN (PDF)
                       </button>
                     </div>
@@ -857,7 +924,7 @@ ${coverText}`;
                       >
                         <ChevronRight className="w-4 h-4 rotate-180" /> KEMBALI KE SETTING TALLY SHEET
                       </button>
-                      <button onClick={() => window.print()} className="bg-[#0ea5e9]/10 text-[#38bdf8] border border-[#0ea5e9]/30 hover:bg-[#0ea5e9] hover:text-white px-6 py-2.5 rounded-xl font-bold text-[10px] uppercase tracking-widest flex items-center gap-2 transition-all outline-none shadow-xl drop-shadow-md">
+                      <button onClick={() => handleExportPDF('lampiran-section', 'Lampiran.pdf')} className="bg-[#0ea5e9]/10 text-[#38bdf8] border border-[#0ea5e9]/30 hover:bg-[#0ea5e9] hover:text-white px-6 py-2.5 rounded-xl font-bold text-[10px] uppercase tracking-widest flex items-center gap-2 transition-all outline-none shadow-xl drop-shadow-md">
                         <Download className="w-4 h-4" /> DOWNLOAD/CETAK LAMPIRAN (PDF)
                       </button>
                     </div>
@@ -981,15 +1048,29 @@ ${coverText}`;
                                     </tr>
                                   </thead>
                                   <tbody>
-                                    {(mainTeknik.toLowerCase() === 'kuesioner' && item.pernyataan ? item.pernyataan : [...Array(19)].map(() => null)).map((stmt, rIdx) => (
-                                      <tr key={rIdx} className="bg-[#181d27] border-b border-slate-700 hover:bg-[#1e2432] transition-colors print:h-[13.5mm]">
-                                        {[...Array(colCount)].map((_, cIdx) => (
-                                          <td key={cIdx} className={`p-4 text-[13px] font-medium ${cIdx === 1 && stmt ? 'text-slate-200 text-left' : 'text-slate-400 text-center'} border-r border-slate-800`}>
-                                            {cIdx === 0 ? rIdx + 1 : (cIdx === 1 && stmt) ? <div className="leading-relaxed">{stmt}</div> : <div className="w-full flex items-center justify-center h-full"><span className="inline-block border-b-2 border-dotted border-slate-600 w-11/12 translate-y-1">&nbsp;</span></div>}
-                                          </td>
-                                        ))}
-                                      </tr>
-                                    ))}
+                                      {(mainTeknik.toLowerCase() === 'kuesioner' && item.pernyataan ? item.pernyataan : [...Array(19)].map(() => null)).map((stmt, rIdx) => (
+                                        <tr key={rIdx} className="bg-[#181d27] border-b border-slate-700 hover:bg-[#1e2432] transition-colors print:h-[13.5mm]">
+                                          {[...Array(colCount)].map((_, cIdx) => (
+                                            <td key={cIdx} className={`p-4 text-[13px] font-medium ${cIdx === 1 && stmt ? 'text-slate-200 text-left' : 'text-slate-400 text-center'} border-r border-slate-800`}>
+                                              {cIdx === 0 ? rIdx + 1 : (cIdx === 1 && stmt) ? (
+                                                <div className="leading-relaxed">
+                                                  {typeof stmt === 'object' ? (
+                                                    <div>
+                                                      <p>{stmt.teks}</p>
+                                                      <div className="flex gap-2 mt-2 font-bold mb-1 print:hidden">
+                                                        <span className="text-[9px] bg-slate-700/50 text-[#0ea5e9] px-2 py-0.5 rounded uppercase tracking-wider">{stmt.sifat}</span>
+                                                        <span className="text-[9px] bg-slate-700/50 text-indigo-400 px-2 py-0.5 rounded uppercase tracking-wider">{stmt.skor}</span>
+                                                      </div>
+                                                    </div>
+                                                  ) : (stmt.teks || stmt)}
+                                                </div>
+                                              ) : (
+                                                <div className="w-full flex items-center justify-center h-full"><span className="inline-block border-b-2 border-dotted border-slate-600 w-11/12 translate-y-1">&nbsp;</span></div>
+                                              )}
+                                            </td>
+                                          ))}
+                                        </tr>
+                                      ))}
                                   </tbody>
                                 </table>
                                 <div className="mt-4 px-2 pb-4 text-left text-slate-400 print:text-[#333]">
@@ -1010,7 +1091,7 @@ ${coverText}`;
 
                     <div className="flex justify-center gap-6 mt-16 mb-12 print:hidden w-full">
                       <button
-                        onClick={() => window.print()}
+                        onClick={() => handleExportPDF('lampiran-section', 'Tally_Sheet.pdf')}
                         className="bg-[#0ea5e9]/10 text-[#38bdf8] border border-[#0ea5e9]/30 hover:bg-[#0ea5e9] hover:text-white px-8 py-3.5 rounded-xl font-bold text-[12px] uppercase tracking-widest flex items-center gap-3 transition-all outline-none shadow-xl shadow-[#0ea5e9]/10"
                       >
                         <Download className="w-5 h-5" /> EXPORT TABEL KE PDF
@@ -1115,11 +1196,19 @@ ${coverText}`;
                     Rekapitulasi absolut data ini digunakan sebagai komposit visual di Tugas Akhir Anda.
                   </p>
                 </div>
-                <button onClick={handleExportSPSS} className="bg-[#145d7a] text-white px-6 py-3.5 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-[#11465e] transition-all shadow-lg hover:shadow-xl active:scale-95 outline-none shrink-0 border border-[#145d7a]/50">
-                  <Download className="w-4 h-4" /> EXPORT SPSS / PLS (.CSV)
-                </button>
+                <div className="flex gap-3 shrink-0 flex-wrap justify-end">
+                  <button onClick={() => handleExportPDF('tabelBab4', 'Tabel_Analisis_Bab_4.pdf')} className="bg-[#0ea5e9]/10 text-[#0ea5e9] border border-[#0ea5e9]/30 hover:bg-[#0ea5e9] hover:text-white px-6 py-3.5 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-sm outline-none">
+                    <Download className="w-4 h-4" /> EXPORT PDF
+                  </button>
+                  <button onClick={handleExportBab4Excel} className="bg-[#10b981]/10 text-[#10b981] border border-[#10b981]/30 hover:bg-[#10b981] hover:text-white px-6 py-3.5 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-sm outline-none">
+                    <FileSpreadsheet className="w-4 h-4" /> EXPORT EXCEL
+                  </button>
+                  <button onClick={handleExportSPSS} className="bg-[#145d7a] text-white px-6 py-3.5 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-[#11465e] transition-all shadow-lg hover:shadow-xl active:scale-95 outline-none shrink-0 border border-[#145d7a]/50">
+                    <Database className="w-4 h-4" /> SPSS / PLS (.CSV)
+                  </button>
+                </div>
               </div>
-              <div className="p-8">
+              <div className="p-8" id="tabelBab4">
                 <table className="w-full text-center border-2 border-[#1a2332] rounded-xl overflow-hidden shadow-sm">
                   <thead className="bg-[#1a2332] text-white">
                     <tr>
