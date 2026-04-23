@@ -805,7 +805,7 @@ KEMBALIKAN HANYA JSON DENGAN FORMAT:
 
               <div className="bg-[#145d7a] rounded-[2rem] p-8 mb-10 shadow-xl overflow-hidden relative">
                 <div className="text-center mb-12 mt-2">
-                  <h2 className="text-4xl font-black text-white tracking-tight drop-shadow-sm">Generator Data Penelitian</h2>
+                  <h2 className="text-4xl font-black text-white tracking-tight drop-shadow-sm">Generator Tabel Wawancara Kuesioner</h2>
                   <p className="text-teal-100 text-[13px] mt-2 font-medium">Rencana tahapan penyusunan data penelitianmu. Selesaikan milestone dari kiri ke kanan.</p>
                 </div>
 
