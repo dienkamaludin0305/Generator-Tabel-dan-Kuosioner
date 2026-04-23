@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
   Database, ArrowRight, Loader2, Table2, Wand2, UploadCloud, Download,
   ListChecks, Plus, Trash2, LayoutDashboard, ChevronRight, ChevronDown, Info, Sparkles, AlertCircle,
-  User, CheckCircle2, Map, Bell, BookOpen, Target, LayoutTemplate, FileSpreadsheet
+  User, CheckCircle2, Map, Bell, BookOpen, Target, LayoutTemplate, FileSpreadsheet, Save
 } from 'lucide-react';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import * as pdfjsLib from 'pdfjs-dist';
@@ -13,11 +13,62 @@ import html2pdf from 'html2pdf.js';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
 
+const HourglassLoader = () => (
+  <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-[#0b1120]/90 backdrop-blur-md animate-in fade-in duration-300">
+    <div className="relative w-20 h-28 flex flex-col items-center mb-10 hourglass-spin drop-shadow-[0_0_15px_rgba(14,165,233,0.5)]">
+      {/* Kaca Atas */}
+      <div className="w-14 h-12 bg-white/5 border-[3px] border-slate-400/80 border-b-0 rounded-t-[14px] relative overflow-hidden flex justify-center">
+        <div className="w-full bg-gradient-to-b from-[#38bdf8] to-[#0ea5e9] absolute bottom-0 left-0 top-sand"></div>
+      </div>
+      {/* Leher */}
+      <div className="w-2.5 h-3 bg-slate-400/80 relative z-10 -my-0.5 rounded-[1px]"></div>
+      {/* Kaca Bawah */}
+      <div className="w-14 h-12 bg-white/5 border-[3px] border-slate-400/80 border-t-0 rounded-b-[14px] relative overflow-hidden flex justify-center shadow-[inset_0_-10px_15px_rgba(0,0,0,0.2)]">
+        <div className="w-full bg-gradient-to-t from-[#0284c7] to-[#0ea5e9] absolute bottom-0 left-0 bottom-sand rounded-b-[10px]"></div>
+      </div>
+    </div>
+    <div className="bg-slate-800/80 border border-slate-700 shadow-2xl px-8 py-3.5 rounded-full flex items-center gap-4">
+      <div className="flex space-x-1.5">
+        <div className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-bounce" style={{animationDelay: '0ms'}}></div>
+        <div className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-bounce" style={{animationDelay: '150ms'}}></div>
+        <div className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-bounce" style={{animationDelay: '300ms'}}></div>
+      </div>
+      <span className="text-white font-black tracking-[0.2em] text-[11px] uppercase">Mengekstrak Dokumen...</span>
+    </div>
+    <style>{`
+      .hourglass-spin {
+        animation: spinHourglass 2.5s infinite cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      .top-sand {
+        animation: shrinkSand 2.5s infinite linear;
+      }
+      .bottom-sand {
+        animation: fillSand 2.5s infinite linear;
+      }
+      @keyframes spinHourglass {
+        0%, 75% { transform: rotate(0deg); }
+        90%, 100% { transform: rotate(180deg); }
+      }
+      @keyframes shrinkSand {
+        0% { height: 100%; top: 0%; }
+        75%, 100% { height: 0%; top: 100%; }
+      }
+      @keyframes fillSand {
+        0% { height: 0%; }
+        75%, 100% { height: 100%; }
+      }
+    `}</style>
+  </div>
+);
+
 export default function App() {
   const [currentStep, setCurrentStep] = useState('roadmap');
   const [isLoading, setIsLoading] = useState(false);
   const [isFileUploading, setIsFileUploading] = useState(false);
   const [fileName, setFileName] = useState('');
+  const [sekunderFileName, setSekunderFileName] = useState('');
+  const [isSekunderUploading, setIsSekunderUploading] = useState(false);
+  const [sekunderContent, setSekunderContent] = useState('');
   const [error, setError] = useState('');
 
   const [userProfile, setUserProfile] = useState({
@@ -37,6 +88,8 @@ export default function App() {
   const [primerRows, setPrimerRows] = useState([]);
   const [tableHeaders, setTableHeaders] = useState([]);
   const [tableRows, setTableRows] = useState([]);
+  const [questionCounts, setQuestionCounts] = useState({});
+  const [selectedDesign, setSelectedDesign] = useState({});
 
   const fillBioDummy = () => {
     setUserProfile({
@@ -57,11 +110,11 @@ export default function App() {
     
     let itemExample = "";
     if (isKuesioner) {
-      itemExample = `        { "id": "p1", "parameter": "Tutupan Tajuk / Sikap Responden", "satuan": "Skala", "pernyataan": [ { "teks": "Saya rutin menggunakan alat sesuai SOP", "sifat": "Favorable", "skor": "SS=5, S=4, N=3, TS=2, STS=1" }, { "teks": "SOP sulit dipahami", "sifat": "Unfavorable", "skor": "SS=1, S=2, N=3, TS=4, STS=5" } ] }`;
+      itemExample = `        { "id": "p1", "parameter": "Definisi Indikator Super Kuat (X1)", "satuan": "Poin Skala", "lampiranInstruksi": "SOP Teknis responden" }`;
     } else if (isWawancara) {
-      itemExample = `        { "id": "p1", "parameter": "Sistem Informasi Manajemen", "satuan": "-", "lampiranInstruksi": "Probing mendalam", "pertanyaan": ["Bagaimana efektivitas sistem Anda?", "Apa tantangan terbesarnya?"] }`;
+      itemExample = `        { "id": "p1", "parameter": "Definisi Indikator Spesifik (X1)", "satuan": "Kualitatif", "lampiranInstruksi": "Probing mendalam eksplorasi" }`;
     } else {
-      itemExample = `        { "id": "p1", "parameter": "Tutupan Tajuk", "satuan": "%", "lampiranInstruksi": "Bidik tegak lurus", "lampiranHeaders": ["Sektor Titik", "Skor A", "Skor B", "Catatan Khusus"] }`;
+      itemExample = `        { "id": "p1", "parameter": "Faktor Ukur Utama", "satuan": "Validitas Angka", "lampiranInstruksi": "Catat metrik lapangan", "lampiranHeaders": ["Lokasi Titik", "Utara", "Timur", "Catatan"] }`;
     }
 
     return `{
@@ -86,14 +139,21 @@ ${itemExample}
     { "id": 1, "responden": "Target 01", "P1": 85, "P2": 15 },
     { "id": 2, "responden": "Target 02", "P1": 80, "P2": 12 },
     { "id": 3, "responden": "Target 03", "P1": 70, "P2": 10 }
-    // ... LANJUTKAN HINGGA 30 DATA SAMPEL ...
+    // ... LANJUTKAN HINGGA 5 DATA SAMPEL SAJA ...
   ]
 }`;
   };
 
   const PROMPT_TEMPLATE = `
-Anda adalah seorang Ahli Metodologi Penelitian Lapangan Teknis. 
-Khusus untuk analisis kualitatif dan rancangan wawancara, Anda BERPERAN dan MENGACU ketat pada model Miles, Huberman, dan Saldana (Transkripsi Data secara Verbatim -> Kondensasi/Reduksi Data via Coding & Grouping -> Penyajian Data -> Penarikan Kesimpulan & Triangulasi). Ingat selalu prosedur ini dalam setiap instrumen yang Anda rancang.
+PERAN ANDA (ROLE-BASED AI):
+Anda adalah seorang "Ahli Metodologi Utama" yang berspesialisasi secara eksklusif pada Jenis Metodologi "{metodologi}" dengan penerapan eksekusi lapangan melalui Teknik "{teknik}" dalam bidang keilmuan {prodi}. 
+
+KAIDAH MUTLAK METODOLOGI ("{metodologi}"):
+- JIKA "{metodologi}" KUALITATIF: Anda WAJIB bersikap sebagai empiris kualitatif yang mengacu ketat pada model Miles, Huberman, & Saldana. Fokus utama hasil Anda adalah triangulasi, probing mendalam, fenomena subjektif, dan transkripsi. Dilarang menggunakan metrik angka murni.
+- JIKA "{metodologi}" KUANTITATIF/EKSPERIMEN: Anda WAJIB bersikap sebagai statistikawan kaku. Fokus utama hasil Anda adalah angka pasti, validitas & reliabilitas, eksperimen berulang, galat, N-Gain, dan observasi faktual eksak (bebas dari asumsi subjektif).
+- JIKA R&D/MIXED: Kombinasikan tahap eksplorasi dan tahap pengujian produk.
+
+Sebagai ahli dari teknik "{teknik}", rancangan instrumen apa pun yang Anda tulis harus mencerminkan identitas teknik tersebut secara absolut dan mustahil dibantah oleh penguji skripsi mana pun.
 
 Berdasarkan parameter skripsi di bawah ini:
 Judul Skripsi: "{judul}"
@@ -106,17 +166,20 @@ Program Studi Mahasiswa: "{prodi}"
 Tugas:
 1. Ekstrak dan definisikan Variabel Utama penelitian (X, Y, Z, M jika ada). Jelaskan setiap variabel secara PADAT, LUGAS, dan RINGKAS.
 2. Rancang instrumen spesifik secara TEKNIS dan MENDALAM yang merupakan derivasi/turunan langsung dari Variabel tersebut untuk menjawab rumusan masalah. Desain instrumen harus SANGAT MENGIKUTI pola Teknik Pengambilan Data ("{teknik}"):
-   - Jika Wawancara: Hasilkan daftar pertanyaan wawancara mendalam yang SANGAT SPESIFIK membahas masing-masing Variabel (X, Y, Z, M). Setiap pertanyaan harus menyebutkan atau berkaitan langsung dengan konteks sub-variabel / dimensi secara eksplisit. BUKAN pertanyaan generik seperti "Bagaimana pengalaman Anda?". Gunakan teknik 5W+1H (fokus 'Mengapa' dan 'Bagaimana') dan teknik Probing terarah. JANGAN HASILKAN FORMAT TABEL UNTUK WAWANCARA.
-   - Jika Kuesioner: Operasionalisasikan kerangka variabel (X, Y, Z, M) menjadi indikator dengan SANGAT MENDALAM. Susun pernyataan kuesioner yang SANGAT TAJAM dan EKSPLISIT untuk membedah inti fenomena. SETIAP pernyataan WAJIB memuat konteks variabelnya secara langsung agar tidak bias/membingungkan saat uji korelasi statistik! Gunakan bahasa tingkat lanjut (advanced) namun terukur. HINDARI pernyataan dangkal/generik! Tipe Skala: {skala}. Jika Guttman: susun proposisi faktual tegas (Ya/Tidak). WAJIB BUAT MINIMAL 10 PERNYATAAN UNTUK SETIAP VARIABEL / TOPIK. Sebagai implementasi Codebook dan Scoring Guide, tiap item harus proporsional Favorable (Positif) dan Unfavorable (Negatif). Simpan pernyataan di dalam array kumpulan *Objek* bernama "pernyataan" dengan format { "teks": "Pernyataan kalimat...", "sifat": "Favorable/Unfavorable", "skor": "SS=5... atau SS=1..." } di dalam object item (sejajar dengan id dan parameter). Pastikan item negatif dibalik skornya otomatis pada pedoman penskoran!
+   - Jika Wawancara: Hasilkan daftar pertanyaan wawancara mendalam yang SANGAT SPESIFIK membahas masing-masing Variabel. BUKAN pertanyaan generik! Gunakan teknik 5W+1H dan Probing. JANGAN HASILKAN FORMAT TABEL UNTUK WAWANCARA.
+   - Jika Kuesioner: Operasionalisasikan kerangka variabel menjadi indikator dengan SANGAT MENDALAM. Tipe Skala: {skala}.
    - Jika Studi Dokumentasi: Hasilkan daftar kebutuhan arsip/dokumen legal formal dan poin ekstraksinya.
-   - Jika Eksperimen: Hasilkan matriks perlakuan kelompok kontrol/intervensi dan metrik efeknya.
+   - Jika Eksperimen: WAJIB pecah menjadi 2 Dimensi Utama Eksperimen dengan format kolom SUPER SPESIFIK dan MENDALAM untuk Program Studi {prodi} tanpa campur aduk bidang lain:
+     * Dimensi 1: "Tabel Tabulasi Data Utama Eksperimen". Tiap Item di dalamnya WAJIB menggunakan array \`lampiranHeaders\` PERSIS seperti ini: ["ID Subjek", "Kovariat / Blok (Syarat RAK & ANAKOVA)", "Perlakuan (Syarat RAL, Faktorial, Uji Beda)", "Baseline/Pre-Test", "Final/Post-Test", "Selisih Gain Score", "Catatan Galat Percobaan"]. Hasilkan turunan item parameter sesuai rincian Klasifikasi Variabel penelitian (Bebas, Terikat).
+     * Dimensi 2: "Tabel Log Observasi Harian (Dimensi Kontekstual)". Tiap Item di dalamnya WAJIB menggunakan array \`lampiranHeaders\` PERSIS seperti ini: ["Sesi/Hari", "Waktu/Timestamp", "Variabel Kontrol (Kondisi Lingkungan)", "Log Aktivitas/Intervensi", "Faktor Pengganggu (Noise)", "Tindakan Koreksi"]. Hasilkan turunan item parameter terkait Variabel Kontrol dan faktor pengganggu potensial.
+     Tiap parameter harus menyertakan Satuan Ukur yang 100% valid secara sains untuk prodi {prodi} (Misal Kedokteran=mmHg, Teknik=Joule, atau Pendidikan=Skor Poin). Terapkan secara penuh kaidah Randomization dan Validitas!
    - Jika Observasi: Hasilkan susunan parameter pengamatan fisik lapangan, kuadran, dsb.
 3. Instrumen/Parameter harus dikelompokkan hierarkis ke dalam "Dimensi" yang mencerminkan Variabel Studi.
 4. Setiap item/parameter WAJIB mencantumkan Satuan ukur / Skala / Tolok Ukur Validasi / Target Subjek.
-5. Siapkan struktur header Tabel Primer dan WAJIB hasilkan 30 sampel mock-data skenario lapangan (dummyData) yang distribusinya logis, nyata, dan bervariasi pada bagian dummyPrimer.
-6. KHUSUS WAWANCARA: PADA "observasi", JANGAN buat \`lampiranHeaders\`! Gantilah menjadi array \`pertanyaan\` di dalam \`items\`. Isi \`pertanyaan\` WAJIB berupa kumpulan *String* kalimat pertanyaan wawancara spesifik yang langsung menyentuh esensi Variabel Penelitian, BUKAN sekadar *copy-paste* template generik. (Dilarang bentuk tabel). WAJIB MENGHASILKAN MINIMAL 10 PERTANYAAN UNTUK SETIAP TOPIK / PARAMETER!
-   - UNTUK METODE LAIN: Untuk SETIAP dimensi dan item parameter, WAJIB definisikan array \`lampiranHeaders\` berisi judul kolom spesifik. Jika Kuesioner, sesuaikan \`lampiranHeaders\` dengan pilihan {skala} (Misal Likert: ["Pernyataan", "SS", "S", "N", "TS", "STS"] atau Guttman: ["Pernyataan", "Ya", "Tidak"]). JANGAN gunakan header generik!
-7. Untuk SETIAP dimensi dan parameter, WAJIB definisikan string \`lampiranInstruksi\` yang berisi detail SOP. (Contoh Kuesioner: "Berikan penjelasan di awal sebelum responden mensubmit; Jamin Anonimitas").
+5. Siapkan struktur header Tabel Primer dan WAJIB hasilkan 7 sampel mock-data skenario lapangan yang distribusinya logis, nyata, dan bervariasi pada bagian dummyPrimer.
+6. SANGAT PENTING: PADA TAHAP INI, JANGAN PERNAH MENGHASILKAN ARRAY \`pernyataan\` ATAU \`pertanyaan\` KE DALAM JSON DI BAWAH ITEMS! CUKUP PEMECAHAN HINGGA LEVEL PARAMETER/INDIKATOR SAJA! Desain draft isi kuesioner/wawancara akan dilakukan di tahap berbeda agar JSON tidak terpotong (truncated).
+   - UNTUK METODE KUESIONER/WAWANCARA: JANGAN buat \`lampiranHeaders\` di dalam items observasi. Dilarang!
+   - UNTUK METODE EKSPERIMEN/OBSERVASI LAIN: WAJIB buat \`lampiranHeaders\` berisi judul kolom spesifik tabel harian.
 
 WAJIB KEMBALIKAN HANYA OBJEK JSON MURNI YANG VALID. DILARANG MEMBERIKAN TEKS PENDAHULUAN ATAU BACKTICKS:
 {format_json}
@@ -167,6 +230,8 @@ WAJIB KEMBALIKAN HANYA OBJEK JSON MURNI YANG VALID. DILARANG MEMBERIKAN TEKS PEN
         },
         body: JSON.stringify({
           "model": "google/gemini-2.5-flash",
+          "response_format": { "type": "json_object" },
+          "max_tokens": 8192,
           "messages": [{ "role": "user", "content": promptText }]
         })
       });
@@ -179,7 +244,13 @@ WAJIB KEMBALIKAN HANYA OBJEK JSON MURNI YANG VALID. DILARANG MEMBERIKAN TEKS PEN
     if (apiKey && apiKey !== 'YOUR_API_KEY_HERE') {
       try {
         const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+        const model = genAI.getGenerativeModel({ 
+          model: "gemini-2.5-flash",
+          generationConfig: { 
+            responseMimeType: "application/json",
+            maxOutputTokens: 8192
+          }
+        });
         const aiResponse = await model.generateContent(promptText);
         return aiResponse.response.text();
       } catch (geminiError) {
@@ -199,7 +270,7 @@ WAJIB KEMBALIKAN HANYA OBJEK JSON MURNI YANG VALID. DILARANG MEMBERIKAN TEKS PEN
   const extractPdfText = async (arrayBuffer) => {
     const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
     let fullText = '';
-    const numPages = Math.min(5, pdf.numPages);
+    const numPages = Math.min(100, pdf.numPages);
     for (let i = 1; i <= numPages; i++) {
       const page = await pdf.getPage(i);
       const content = await page.getTextContent();
@@ -229,11 +300,10 @@ WAJIB KEMBALIKAN HANYA OBJEK JSON MURNI YANG VALID. DILARANG MEMBERIKAN TEKS PEN
       } else {
         setError("Format file tidak didukung. Mohon unggah PDF atau DOCX.");
         setIsFileUploading(false);
-        return;
       }
 
-      const rawText = text.substring(0, 15000);
-      const coverText = text.substring(0, 4000);
+      const rawText = text.substring(0, 300000);
+      const coverText = text.substring(0, 5000);
 
       let identityData = {};
       try {
@@ -289,6 +359,33 @@ ${coverText}`;
     }
   };
 
+  const handleSekunderUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setIsSekunderUploading(true);
+    setSekunderFileName(file.name);
+    try {
+      const buffer = await file.arrayBuffer();
+      let text = '';
+      if (file.name.toLowerCase().endsWith('.pdf')) {
+        text = await extractPdfText(buffer);
+      } else if (file.name.toLowerCase().endsWith('.docx')) {
+        text = await extractDocxText(buffer);
+      } else {
+        setError("Format file referensi sekunder tidak didukung. Mohon unggah PDF atau DOCX.");
+        setIsSekunderUploading(false);
+        return;
+      }
+      setSekunderContent(text.substring(0, 300000));
+      setError('');
+    } catch (err) {
+      console.error(err);
+      setError("Gagal mengekstrak teks file referensi sekunder.");
+    } finally {
+      setIsSekunderUploading(false);
+    }
+  };
+
   const handleGenerate = async (overrideData = null, overrideProfile = null) => {
     const currentJudul = overrideData && overrideData.judul ? overrideData.judul : researchData.judul;
     const currentKonteks = overrideData && overrideData.babContent ? overrideData.babContent : researchData.babContent;
@@ -319,7 +416,10 @@ ${coverText}`;
 
       let responseText;
       try {
-        responseText = await runAI(prompt);
+        responseText = await Promise.race([
+          runAI(prompt),
+          new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout 90 detik: Proses ekstraksi dokumen komprehensif sedang berlangsung, mohon coba lagi.")), 90000))
+        ]);
       } catch (apiErr) {
         throw apiErr;
       }
@@ -353,6 +453,7 @@ ${coverText}`;
       setCurrentStep(1);
     } catch (e) {
       console.error(e);
+      setError("Ekstraksi AI Tidak Sempurna (Error parsing/timeout). Menampilkan Kerangka Dummy/Fallback untuk Anda. " + e.message);
       const fallback = generateDetailingFallback(currentJudul, currentProfile.prodi, researchData.teknik || 'Observasi', researchData.skalaKuesioner || '');
       setVariabelData(fallback.variabel_penelitian);
       setObservasiData(fallback.observasi);
@@ -363,12 +464,93 @@ ${coverText}`;
       setPrimerRows(fallback.dummyPrimer);
       setTableHeaders(["Lokasi / Target", ...fallback.primerHeaders.map(h => h.code), "Kategori Evaluasi"]);
       syncData(fallback.primerHeaders, fallback.dummyPrimer);
-      setError("Data Gagal Diekstrak Penuh (AI Error/Format Berbeda). Ini adalah Mode Fallback yang disesuaikan.");
       setCurrentStep(1);
     } finally {
       setIsLoading(false);
     }
   };
+
+  const generateLampiranAI = async () => {
+    setIsGeneratingLampiran(true);
+    setError('');
+    
+    const selectedItems = [];
+    observasiData.forEach(dim => {
+      dim.items?.forEach(item => {
+        if (checkedLampiranIds.includes(item.id)) {
+          selectedItems.push({
+            parameter: item.parameter,
+            id: item.id,
+            count: parseInt(questionCounts[item.id] || "5", 10)
+          });
+        }
+      });
+    });
+
+    const isWawancara = researchData.teknik.toLowerCase().includes('wawancara');
+    
+    if (selectedItems.length === 0) {
+      setIsGeneratingLampiran(false);
+      return;
+    }
+
+    const secPrompt = `
+Anda adalah ahli penelitian. Berdasarkan parameter:
+Judul: "${researchData.judul}"
+Teknik: "${researchData.teknik}"
+Skala: "${researchData.skalaKuesioner}"
+
+Tugas: Hasilkan PENYATAAN/PERTANYAAN secara mendalam. WAJIB patuhi batasan JUMLAH (count) untuk tiap item!
+${selectedItems.map((si, idx) => `Item [ID: ${si.id}] "${si.parameter}" -> Buat TEPAT ${si.count} ${isWawancara ? 'pertanyaan' : 'pernyataan'}.`).join('\n')}
+
+KEMBALIKAN HANYA JSON DENGAN FORMAT:
+[
+  {
+    "id": "id item",
+    ${isWawancara ? `"pertanyaan": ["tanya 1", ...]` : `"pernyataan": [{"teks": "...", "sifat": "Favorable", "skor": "SS=5..."}, ...]`}
+  }
+]
+`;
+
+    try {
+      const response = await Promise.race([
+        runAI(secPrompt),
+        new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout 90 detik saat generate ekstensi lampiran. Data terlalu kompleks.")), 90000))
+      ]);
+      const cleanJson = response.replace(/\`\`\`json/g, '').replace(/\`\`\`/g, '').trim();
+      let generatedList;
+      try {
+        generatedList = JSON.parse(cleanJson);
+      } catch (parseErr) {
+        console.error("Parse Error:", cleanJson);
+        throw new Error("Format JSON gagal diparsing (AI Timeout/Syntax). Silakan coba lagi.");
+      }
+      
+      const newData = [...observasiData];
+      newData.forEach(dim => {
+        if (dim.items) {
+          dim.items.forEach(item => {
+            if (Array.isArray(generatedList)) {
+              const match = generatedList.find(g => g.id === item.id);
+              if (match) {
+                if (isWawancara) item.pertanyaan = match.pertanyaan;
+                else item.pernyataan = match.pernyataan;
+              }
+            }
+          });
+        }
+      });
+      setObservasiData(newData);
+      setIsLampiranGenerated(true);
+      setTimeout(() => { document.getElementById('lampiran-section')?.scrollIntoView({ behavior: 'smooth' }); }, 100);
+    } catch(err) {
+      console.error(err);
+      setError("Lampiran Gagal: " + err.message);
+    } finally {
+      setIsGeneratingLampiran(false);
+    }
+  };
+
 
   const syncData = (headers = primerHeaders, rows = primerRows) => {
     const newUtama = rows.map(p => {
@@ -469,7 +651,7 @@ ${coverText}`;
     try {
       const wb = XLSX.utils.book_new();
       const wsBab4 = XLSX.utils.aoa_to_sheet([tableHeaders, ...tableRows]);
-      XLSX.utils.book_append_sheet(wb, wsBab4, "Analisis Bab 4");
+      XLSX.utils.book_append_sheet(wb, wsBab4, "Tabel Utama");
       XLSX.writeFile(wb, "Data_Analisis_Bab_4.xlsx");
     } catch(err) {
       setError("Gagal Export Excel Bab 4: " + err.message);
@@ -482,14 +664,35 @@ ${coverText}`;
   const stepsData = [
     { id: 0, label: 'KONTEKS', title: 'Konteks Penelitian', desc: 'Masukkan parameter riset dan perintahkan AI.', icon: <User className="w-5 h-5" /> },
     { id: 1, label: 'TALLY SHEET', title: 'Tabel Tally Sheet', desc: 'Penjabaran komponen data teknis wajib.', icon: <ListChecks className="w-5 h-5" /> },
-    { id: 2, label: 'DATA PRIMER', title: 'Titik Data Primer', desc: 'Kompilasi Digital Rekam Jejak Lapangan.', icon: <Database className="w-5 h-5" /> },
-    { id: 3, label: 'ANALISIS BAB 4', title: 'Tabel Analisis Bab 4', desc: 'Rekapitulasi absolut komposit visual.', icon: <Table2 className="w-5 h-5" /> }
+    { id: 2, label: 'DATA PRIMER', title: 'Data Primer', desc: 'Kompilasi Digital Rekam Jejak Lapangan.', icon: <Database className="w-5 h-5" /> },
+    { id: 4, label: 'DATA SEKUNDER', title: 'Data Sekunder', desc: 'Import file referensi sekunder.', icon: <BookOpen className="w-5 h-5" /> },
+    { id: 3, label: 'TABEL UTAMA', title: 'Tabel Utama', desc: 'Rekapitulasi absolut komposit visual.', icon: <Table2 className="w-5 h-5" /> }
   ];
   const activeTeknik = researchData.teknik || 'Observasi (Pengamatan)';
   const mainTeknik = activeTeknik.split(' ')[0];
 
+  const getHeaderTitle = (teknik) => {
+    const t = (teknik || 'Observasi').toLowerCase();
+    if (t.includes('wawancara')) return 'Pedoman Wawancara';
+    if (t.includes('kuesioner')) return 'Instrumen Kuesioner/Angket';
+    if (t.includes('dokumentasi')) return 'Ekstraksi Data Dokumentasi';
+    if (t.includes('eksperimen')) return 'Logbook Perlakuan Eksperimen';
+    return 'Tabel Tally Sheet Observasi';
+  };
+
+  const getTableTitle = (teknik) => {
+    const t = (teknik || 'Observasi').toLowerCase();
+    if (t.includes('wawancara')) return 'Tabel 1: Matriks Indikator & Target Wawancara';
+    if (t.includes('kuesioner')) return 'Tabel 1: Kisi-kisi Instrumen Kuesioner';
+    if (t.includes('dokumentasi')) return 'Tabel 1: Kebutuhan Target Studi Dokumentasi';
+    if (t.includes('eksperimen')) return 'Tabel 1: Metrik Observasi Data Eksperimen';
+    return 'Tabel 1: Instrumen Pengambilan Data Observasi Teknis';
+  };
+
   return (
-    <div className="flex min-h-screen font-sans text-slate-800 relative z-0">
+    <>
+      {(isLoading || isGeneratingLampiran || isFileUploading || isSekunderUploading) && <HourglassLoader />}
+      <div className="flex min-h-screen font-sans text-slate-800 relative z-0">
       {/* Background Grid Layer Matching Screenshot */}
       <div className="absolute inset-0 z-0 bg-[#eff4f8] print:hidden">
         <div className="w-full h-full opacity-30 bg-[linear-gradient(to_right,#cbd5e1_1px,transparent_1px),linear-gradient(to_bottom,#cbd5e1_1px,transparent_1px)] bg-[size:1.5rem_1.5rem]"></div>
@@ -602,8 +805,8 @@ ${coverText}`;
 
               <div className="bg-[#145d7a] rounded-[2rem] p-8 mb-10 shadow-xl overflow-hidden relative">
                 <div className="text-center mb-12 mt-2">
-                  <h2 className="text-4xl font-black text-white tracking-tight drop-shadow-sm">Road Map Topik Penelitian</h2>
-                  <p className="text-teal-100 text-[13px] mt-2 font-medium">Rencana tahapan penyusunan drafmu. Selesaikan milestone dari kiri ke kanan.</p>
+                  <h2 className="text-4xl font-black text-white tracking-tight drop-shadow-sm">Generator Data Penelitian</h2>
+                  <p className="text-teal-100 text-[13px] mt-2 font-medium">Rencana tahapan penyusunan data penelitianmu. Selesaikan milestone dari kiri ke kanan.</p>
                 </div>
 
                 <div className="flex justify-between items-start w-[110%] -ml-[5%] relative pb-4">
@@ -655,9 +858,15 @@ ${coverText}`;
                   <h3 className="text-2xl font-black text-[#1a2332] tracking-tight">Konteks Penelitian</h3>
                   <p className="text-slate-400 font-bold text-sm mt-1">Masukkan parameter riset dan perintahkan AI untuk membangun struktur spesifik.</p>
                 </div>
-                <button onClick={fillBioDummy} className="flex items-center gap-2 px-5 py-2.5 bg-indigo-50 text-indigo-700 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-indigo-100 active:scale-95 transition-all outline-none">
-                  <LayoutDashboard className="w-4 h-4" /> Contoh Dummy
-                </button>
+
+              </div>
+
+              <div className="mb-6">
+                <label className={`w-full py-5 rounded-2xl font-black text-[12px] uppercase tracking-widest shadow-md flex items-center justify-center gap-2 cursor-pointer transition-all border-2 border-dashed ${fileName ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-slate-50 border-slate-300 text-slate-500 hover:bg-slate-100 hover:border-slate-400'} ${isFileUploading ? 'opacity-50 pointer-events-none' : ''}`}>
+                  <input type="file" accept=".pdf,.docx" className="hidden" onChange={handleFileUpload} disabled={isFileUploading || isLoading} />
+                  {isFileUploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <UploadCloud className="w-5 h-5" />}
+                  {isFileUploading ? 'MEMBACA DOKUMEN...' : (fileName ? `DOKUMEN: ${fileName.substring(0, 25)}...` : 'IMPORT SKRIPSI BAB 1-3 (.PDF/.DOCX)')}
+                </label>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -687,7 +896,10 @@ ${coverText}`;
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
                   <div className="space-y-3">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Jenis Metodologi</label>
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex justify-between items-center pr-2">
+                      <span>Jenis Metodologi</span>
+                      <span className="text-red-500 normal-case italic font-bold text-[9px] tracking-normal">*wajib diisi</span>
+                    </label>
                     <div className="relative">
                       <select
                         className="w-full p-5 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-[#0ea5e9] transition-all font-bold text-slate-800 outline-none appearance-none cursor-pointer shadow-sm"
@@ -708,7 +920,10 @@ ${coverText}`;
                   </div>
 
                   <div className="space-y-3">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Teknik Pengambilan Data</label>
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 flex justify-between items-center pr-2">
+                      <span>Teknik Pengambilan Data</span>
+                      <span className="text-red-500 normal-case italic font-bold text-[9px] tracking-normal">*wajib diisi</span>
+                    </label>
                     <div className="relative">
                       <select
                         className="w-full p-5 bg-slate-50 border-none rounded-xl focus:ring-2 focus:ring-[#0ea5e9] transition-all font-bold text-slate-800 outline-none appearance-none cursor-pointer shadow-sm"
@@ -744,16 +959,10 @@ ${coverText}`;
                 )}
               </div>
 
-              <div className="flex flex-col md:flex-row gap-4 mt-6">
-                <label className={`flex-1 py-5 rounded-2xl font-black text-[12px] uppercase tracking-widest shadow-md flex items-center justify-center gap-2 cursor-pointer transition-all border-2 border-dashed ${fileName ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-slate-50 border-slate-300 text-slate-500 hover:bg-slate-100 hover:border-slate-400'} ${isFileUploading ? 'opacity-50 pointer-events-none' : ''}`}>
-                  <input type="file" accept=".pdf,.docx" className="hidden" onChange={handleFileUpload} disabled={isFileUploading || isLoading} />
-                  {isFileUploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <UploadCloud className="w-5 h-5" />}
-                  {isFileUploading ? 'MEMBACA DOKUMEN...' : (fileName ? `DOKUMEN: ${fileName.substring(0, 25)}...` : 'IMPORT SKRIPSI BAB 1-3 (.PDF/.DOCX)')}
-                </label>
-
-                <button onClick={handleGenerate} disabled={!researchData.judul || isLoading || isFileUploading} className="flex-1 py-5 bg-[#145d7a] text-white rounded-2xl font-black text-[13px] uppercase tracking-widest shadow-xl shadow-[#145d7a]/20 flex items-center justify-center gap-3 hover:bg-[#11465e] active:scale-[0.98] transition-all disabled:opacity-50 outline-none">
+              <div className="mt-6">
+                <button onClick={handleGenerate} disabled={!researchData.judul || isLoading || isFileUploading} className="w-full py-5 bg-[#145d7a] text-white rounded-2xl font-black text-[13px] uppercase tracking-widest shadow-xl shadow-[#145d7a]/20 flex items-center justify-center gap-3 hover:bg-[#11465e] active:scale-[0.98] transition-all disabled:opacity-50 outline-none">
                   {isLoading ? <Loader2 className="animate-spin w-5 h-5" /> : <Wand2 className="w-5 h-5" />}
-                  {isLoading ? 'MENGHASILKAN...' : 'Hasilkan Tally Sheet via AI'}
+                  {isLoading ? 'MENGHASILKAN... (Mengekstrak Dokumen Utuh, Mohon Tunggu)' : 'Hasilkan Instrumen via AI'}
                 </button>
               </div>
             </div>
@@ -764,19 +973,19 @@ ${coverText}`;
             <div id="tally-sheet-main" className="bg-white rounded-[2rem] print:rounded-none shadow-sm print:shadow-none border border-slate-200/60 print:border-none print:bg-transparent overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300">
               <div className="p-8 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 print:hidden">
                 <div>
-                  <h3 className="text-2xl font-black text-[#1a2332]">Tabel Tally Sheet {mainTeknik}</h3>
+                  <h3 className="text-2xl font-black text-[#1a2332]">{getHeaderTitle(researchData.teknik)}</h3>
                   <p className="text-sm font-semibold text-slate-400 mt-1 max-w-2xl">Penjabaran komponen data teknis yang wajib dibawa dan direkam di lapangan penelitian.</p>
                 </div>
                 <button onClick={() => setCurrentStep(2)} className="bg-[#f97316] text-white px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 hover:bg-[#ea580c] transition-all shadow-md shrink-0 outline-none">Lanjut Transkrip Data <ChevronRight className="w-4 h-4" /></button>
               </div>
 
               {variabelData && variabelData.length > 0 && (
-                <div className="px-8 pt-8 pb-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 bg-slate-50/50 border-b border-slate-100 print:hidden">
+                <div className="px-8 pt-8 pb-4 grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50/50 border-b border-slate-100 print:hidden">
                   {variabelData.map((v, idx) => (
-                    <div key={idx} className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm border-t-4 hover:-translate-y-1 transition-transform" style={{ borderTopColor: chevronColors[idx % 4] }}>
-                      <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{v.jenis}</div>
-                      <h4 className="text-[13px] font-bold text-slate-800 mt-1.5 mb-2 leading-tight">{v.nama}</h4>
-                      <p className="text-[11px] text-slate-500 leading-relaxed font-medium">{v.penjelasan}</p>
+                    <div key={idx} className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm border-t-[5px] hover:-translate-y-1 transition-transform flex flex-col justify-center" style={{ borderTopColor: chevronColors[idx % 4] }}>
+                      <div className="text-[11px] font-black text-slate-400 uppercase tracking-widest">{v.jenis}</div>
+                      <h4 className="text-[16px] font-bold text-slate-800 mt-1.5 mb-2 leading-tight">{v.nama}</h4>
+                      <p className="text-[13px] text-slate-500 leading-relaxed font-medium">{v.penjelasan}</p>
                     </div>
                   ))}
                 </div>
@@ -789,22 +998,17 @@ ${coverText}`;
                   <div className="p-8 bg-[#181d27] rounded-3xl shadow-xl shadow-slate-900/10 border border-slate-700">
                     <div className="mb-4">
                       <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                        <ListChecks className="text-[#38bdf8] w-6 h-6" /> Tabel Tally Sheet (Lembar {mainTeknik} Target)
+                        <ListChecks className="text-[#38bdf8] w-6 h-6" /> {getHeaderTitle(researchData.teknik)} Target
                       </h3>
                       <p className="text-slate-400 italic text-[13px] mt-2 font-medium max-w-4xl">
-                        Tabel ini adalah instrumen pengumpulan data teknis yang kelak akan diproses oleh peneliti untuk studi {researchData.judul ? `"${researchData.judul.substring(0, 60)}"` : 'lapangan/studi'} dalam setiap eksekusi pengambilan data.
+                        Tabel ini adalah instrumen pengumpulan data teknis yang kelak akan diproses oleh peneliti untuk studi {researchData.judul ? `"${researchData.judul}"` : 'lapangan/studi'} dalam setiap eksekusi pengambilan data.
                       </p>
                     </div>
 
                     <div className="mt-8 mb-6">
                       <h4 className="font-bold text-white text-[15px] tracking-wide">
-                        Tabel 1: Instrumen Pengambilan Data {mainTeknik} Teknis (Variabel Penelitian)
+                        {getTableTitle(researchData.teknik)} (Variabel Penelitian)
                       </h4>
-                      <div className="text-slate-300 text-[13px] mt-3 flex flex-wrap gap-x-8 gap-y-4 font-normal">
-                        <span>Stasiun/Plot Pengamatan : <span className="text-slate-500">________________________</span></span>
-                        <span>Koordinat GPS : <span className="text-slate-500">________________________</span></span>
-                        <span>Waktu Pengukuran : <span className="text-slate-500">________________________</span></span>
-                      </div>
                     </div>
 
                     <div className="overflow-x-auto rounded-xl border border-slate-700 mt-6">
@@ -852,7 +1056,7 @@ ${coverText}`;
                               {group.items && group.items.map((item, iIdx) => (
                                 <tr key={item.id} className="bg-[#181d27] border-b border-slate-800 hover:bg-[#1e2432] transition-colors">
                                   <td className="p-4 text-[13px] font-medium text-slate-400 text-center border-r border-slate-800">{iIdx + 1}</td>
-                                  <td className="p-4 text-[13px] font-medium text-slate-300 border-r border-slate-800 pr-8">
+                                  <td className="p-4 text-[13px] font-medium text-slate-300 border-r border-slate-800 pr-4">
                                     <label className="flex items-start gap-4 cursor-pointer group w-full">
                                       <input
                                         type="checkbox"
@@ -864,7 +1068,27 @@ ${coverText}`;
                                           else setCheckedLampiranIds(checkedLampiranIds.filter(id => id !== item.id));
                                         }}
                                       />
-                                      <span className="group-hover:text-white transition-colors leading-tight">{item.parameter}</span>
+                                      <div className="flex-1">
+                                        <span className="group-hover:text-white transition-colors leading-tight inline-block mb-2">{item.parameter}</span>
+                                        {checkedLampiranIds.includes(item.id) && (
+                                          <div className="flex items-center gap-2 mt-1 bg-[#1e2432] p-2 rounded-lg border border-slate-700/50 relative slide-in-from-top-2 animate-in duration-200">
+                                            <span className="text-slate-400 text-[11px] uppercase tracking-wider">{((researchData.teknik || '').toLowerCase().includes('wawancara') || (researchData.teknik || '').toLowerCase().includes('kuesioner')) ? 'Jumlah Pertanyaan:' : 'Jumlah Baris:'}</span>
+                                            <div className="flex items-center gap-1.5">
+                                              <input 
+                                                type="number" 
+                                                min="1" 
+                                                max="30"
+                                                className="w-16 h-7 bg-[#11151c] text-white border border-slate-600 rounded px-2 py-0.5 text-[12px] font-bold focus:ring-1 focus:ring-[#0ea5e9] outline-none" 
+                                                placeholder="10"
+                                                value={questionCounts[item.id] || ''}
+                                                onChange={(e) => setQuestionCounts({...questionCounts, [item.id]: e.target.value})}
+                                                onClick={(e) => e.stopPropagation()}
+                                              />
+                                              <span className="text-red-500 text-[10px] italic font-semibold lowercase">*isi</span>
+                                            </div>
+                                          </div>
+                                        )}
+                                      </div>
                                     </label>
                                   </td>
                                   <td className="p-4 text-center border-r border-slate-800">
@@ -884,16 +1108,7 @@ ${coverText}`;
                     {(!isLampiranGenerated && checkedLampiranIds.length > 0) && (
                       <div className="mt-8 flex justify-center print:hidden">
                         <button
-                          onClick={() => {
-                            setIsGeneratingLampiran(true);
-                            setTimeout(() => {
-                              setIsGeneratingLampiran(false);
-                              setIsLampiranGenerated(true);
-                              setTimeout(() => {
-                                document.getElementById('lampiran-section')?.scrollIntoView({ behavior: 'smooth' });
-                              }, 100);
-                            }, 1500);
-                          }}
+                          onClick={generateLampiranAI}
                           disabled={isGeneratingLampiran}
                           className={`bg-[#0ea5e9]/10 text-[#38bdf8] border border-[#0ea5e9]/30 px-8 py-3.5 rounded-xl font-bold text-[12px] uppercase tracking-widest flex items-center gap-3 hover:bg-[#0ea5e9] hover:text-white transition-all shadow-lg shadow-[#0ea5e9]/10 cursor-pointer outline-none ${isGeneratingLampiran ? 'opacity-70 cursor-wait' : 'animate-bounce'}`}
                         >
@@ -913,23 +1128,23 @@ ${coverText}`;
 
                 {/* VIEW 2: LAMPIRAN VIEWPORT */}
                 {(isLampiranGenerated && checkedLampiranIds.length > 0) && (
-                  <div id="lampiran-section" className="p-8 bg-[#1a202d] rounded-3xl shadow-xl shadow-slate-900/10 border border-[#0ea5e9]/20 print:border-none print:shadow-none animate-in fade-in slide-in-from-bottom-4 duration-500 print:break-before-page">
+                  <div id="lampiran-section" className="p-8 bg-[#efe9e6] rounded-3xl shadow-xl shadow-slate-900/10 border border-[#0ea5e9]/20 print:border-none print:shadow-none animate-in fade-in slide-in-from-bottom-4 duration-500 print:break-before-page">
 
-                    <div className="flex justify-between items-center mb-8 pb-6 border-b border-slate-700/50 print:hidden">
+                    <div className="flex justify-between items-center mb-8 pb-6 border-b border-slate-300 print:hidden">
                       <button
                         onClick={() => {
                           setIsLampiranGenerated(false);
                         }}
-                        className="bg-slate-800/50 hover:bg-slate-700 text-slate-300 hover:text-white px-5 py-2.5 rounded-xl font-bold text-[11px] uppercase tracking-widest flex items-center gap-2 transition-all outline-none"
+                        className="bg-white/60 hover:bg-white text-slate-600 hover:text-slate-800 border border-slate-300 px-5 py-2.5 rounded-xl font-bold text-[11px] uppercase tracking-widest flex items-center gap-2 transition-all outline-none"
                       >
                         <ChevronRight className="w-4 h-4 rotate-180" /> KEMBALI KE SETTING TALLY SHEET
                       </button>
-                      <button onClick={() => handleExportPDF('lampiran-section', 'Lampiran.pdf')} className="bg-[#0ea5e9]/10 text-[#38bdf8] border border-[#0ea5e9]/30 hover:bg-[#0ea5e9] hover:text-white px-6 py-2.5 rounded-xl font-bold text-[10px] uppercase tracking-widest flex items-center gap-2 transition-all outline-none shadow-xl drop-shadow-md">
+                      <button onClick={() => handleExportPDF('lampiran-section', 'Lampiran.pdf')} className="bg-[#0ea5e9]/10 text-[#0284c7] border border-[#0ea5e9]/30 hover:bg-[#0ea5e9] hover:text-white px-6 py-2.5 rounded-xl font-bold text-[10px] uppercase tracking-widest flex items-center gap-2 transition-all outline-none shadow-xl drop-shadow-md">
                         <Download className="w-4 h-4" /> DOWNLOAD/CETAK LAMPIRAN (PDF)
                       </button>
                     </div>
 
-                    <h3 className="text-2xl font-black text-white mb-8 text-center uppercase tracking-widest drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]">
+                    <h3 className="text-2xl font-black text-[#2d2825] mb-8 text-center uppercase tracking-widest drop-shadow-sm">
                       [ DOKUMEN LAMPIRAN KHUSUS {researchData.teknik.toUpperCase()} ]
                     </h3>
 
@@ -941,50 +1156,182 @@ ${coverText}`;
 
                         if (isWawancara || mainTeknik.toLowerCase() === 'kuesioner') {
                           elements.push(
-                            <div key={`dim-${group.dimensi}`} className="mt-12 mb-2 p-6 rounded-2xl border-2 border-dashed border-slate-700 bg-[#1e2432] print:bg-transparent print:break-inside-avoid print:shadow-none print:border-none print:m-0">
-                              <h4 className="text-[16px] font-black text-[#0ea5e9] text-center tracking-widest uppercase">
+                            <div key={`dim-${group.dimensi}`} className="mt-12 mb-2 p-6 rounded-2xl border-2 border-dashed border-slate-300 bg-white print:bg-transparent print:break-inside-avoid print:shadow-none print:border-none print:m-0">
+                              <h4 className="text-[16px] font-black text-[#0369a1] text-center tracking-widest uppercase">
                                 {isWawancara ? 'Topik Utama Wawancara: ' : 'Dimensi Variabel Kuesioner: '} {group.dimensi}
                               </h4>
                             </div>
                           );
                         } else {
-                          const fallbackGroupHeaders = mainTeknik.toLowerCase() === 'kuesioner' ? (researchData.skalaKuesioner?.includes('Guttman') ? ['Pernyataan Sub-Variabel', 'Ya', 'Tidak'] : ['Pernyataan Sub-Variabel', 'SS', 'S', 'N', 'TS', 'STS']) : ['Subjek / Objek Pengamatan', 'Hasil Pengukuran', 'Catatan Tambahan'];
-                          const headers = ['No', ...(group.lampiranHeaders || fallbackGroupHeaders)];
+                          const fallbackGroupHeaders = mainTeknik.toLowerCase() === 'kuesioner' ? (researchData.skalaKuesioner?.includes('Guttman') ? ['Pernyataan Sub-Variabel', 'Ya', 'Tidak'] : ['Pernyataan Sub-Variabel', 'SS', 'S', 'N', 'TS', 'STS']) : activeTeknik.toLowerCase().includes('dokumentasi') ? ['Kode Arsip', 'Nama Dokumen Resmi', 'Kutipan Data Otentik', 'Interpretasi / Makna', 'Satuan Ukur / Tipe', 'Relasi Indikator / Triangulasi'] : ['Subjek / Objek Pengamatan', 'Hasil Pengukuran', 'Catatan Tambahan'];
+                          const headers = ['No', ...(activeTeknik.toLowerCase().includes('dokumentasi') ? fallbackGroupHeaders : (group.lampiranHeaders || fallbackGroupHeaders))];
                           const colCount = headers.length;
                           elements.push(
-                            <div key={`dim-${group.dimensi}`} className="mt-12 mb-2 overflow-x-auto rounded-2xl border border-slate-700 w-full shadow-2xl print:break-inside-avoid print:break-after-page print:shadow-none print:border-none print:m-0">
+                            <div key={`dim-${group.dimensi}`} className="mt-12 mb-2 overflow-x-auto rounded-2xl border border-slate-300 w-full shadow-lg print:break-inside-avoid print:break-after-page print:shadow-none print:border-none print:m-0">
                               <table className="w-full text-left border-collapse min-w-[800px]">
                                 <thead>
                                   <tr>
-                                    <th colSpan={colCount} className="bg-[#1e2432] p-5 text-[15px] font-bold text-white border-b border-slate-700 tracking-wide text-center">
-                                      Tabel Lampiran Dimensi: {group.dimensi}
+                                    <th colSpan={colCount} contentEditable="true" suppressContentEditableWarning={true} className="bg-white p-5 text-[15px] font-bold text-[#2d2825] border-b border-slate-300 tracking-wide text-center outline-none focus:bg-slate-50 transition-colors">
+                                      Tabel Lampiran Dimensi: {group.dimensi} {selectedDesign[group.dimensi] && <span className="text-[#0ea5e9]">[{selectedDesign[group.dimensi]}]</span>} <span className="text-[9px] text-[#0369a1] opacity-70 ml-1 underline font-normal cursor-pointer hover:opacity-100">(edit)</span>
                                     </th>
                                   </tr>
-                                  <tr className="bg-[#222836] border-b border-slate-700">
+                                  <tr className="bg-[#f8f5f3] border-b border-slate-300">
                                     {headers.map((col, cIdx) => (
-                                      <th key={cIdx} className={`p-4 text-[12px] uppercase font-bold text-[#0ea5e9] tracking-wide ${cIdx === 0 ? 'w-14 text-center border-r' : 'border-r'} border-slate-700/50`}>
-                                        {col}
+                                      <th key={cIdx} contentEditable="true" suppressContentEditableWarning={true} className={`p-4 text-[12px] uppercase font-bold text-[#0369a1] tracking-wide ${cIdx === 0 ? 'w-14 text-center border-r' : 'border-r'} border-slate-300 outline-none focus:bg-blue-50 transition-colors cursor-text`}>
+                                        {col} <span className="text-[9px] opacity-60 ml-1 normal-case font-medium lowercase">(edit)</span>
                                       </th>
                                     ))}
                                   </tr>
                                 </thead>
                                 <tbody>
                                   {([...Array(19)].map(() => null)).map((stmt, rIdx) => (
-                                    <tr key={rIdx} className="bg-[#181d27] border-b border-slate-700 hover:bg-[#1e2432] transition-colors print:h-[13.5mm]">
+                                    <tr key={rIdx} className="bg-white border-b border-slate-200 hover:bg-slate-50 transition-colors print:h-[13.5mm]">
                                       {[...Array(colCount)].map((_, cIdx) => (
-                                        <td key={cIdx} className="p-4 text-[13px] font-medium text-slate-400 border-r border-slate-800 text-center">
-                                          {cIdx === 0 ? rIdx + 1 : <div className="w-full flex items-center justify-center h-full"><span className="inline-block border-b-2 border-dotted border-slate-600 w-11/12 translate-y-1">&nbsp;</span></div>}
+                                        <td key={cIdx} contentEditable="true" suppressContentEditableWarning={true} className="p-4 text-[13px] font-medium text-slate-600 border-r border-slate-300 text-center outline-none focus:bg-slate-50 transition-colors cursor-text">
+                                          {cIdx === 0 ? rIdx + 1 : <div className="w-full flex items-center justify-center h-full"><span className="inline-block border-b-2 border-dotted border-slate-400 w-11/12 translate-y-1">&nbsp;</span></div>}
                                         </td>
                                       ))}
                                     </tr>
                                   ))}
                                 </tbody>
                               </table>
-                              <div className="mt-4 px-2 pb-4 text-left text-slate-400 print:text-[#333]">
-                                <p className="text-[11px] print:text-[10px] font-medium leading-relaxed italic border-l-2 border-[#0ea5e9] print:border-[#333] pl-3">
-                                  * <strong>SOP Teknis:</strong> <span className={group.lampiranInstruksi ? "text-[#0ea5e9] print:text-[#333]" : ""}>{group.lampiranInstruksi || `Lakukan eksekusi ${mainTeknik.toLowerCase()} data untuk dimensi ${group.dimensi}.`}</span>
-                                </p>
+                              <div className="mt-4 px-2 pb-4 bg-white pt-4 rounded-b-2xl">
+                                <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-4">
+                                  <div className="flex flex-col gap-1.5 w-full md:w-auto flex-1">
+                                    <p className="text-[11px] print:text-[10px] font-medium leading-relaxed italic border-l-2 border-[#0ea5e9] print:border-[#333] pl-3 text-slate-600 print:text-[#333] text-left">
+                                      * <strong>SOP Teknis:</strong> <span className={group.lampiranInstruksi ? "text-[#0369a1] print:text-[#333]" : ""}>{group.lampiranInstruksi || (mainTeknik.toLowerCase() === 'eksperimen' ? `Jalankan protokol pengkondisian dan amati respons pada dimensi ${group.dimensi} secara terkontrol.` : `Lakukan eksekusi ${mainTeknik.toLowerCase()} data untuk dimensi ${group.dimensi}.`)}</span>
+                                    </p>
+                                  </div>
+                                  <div className="flex flex-wrap items-center justify-start md:justify-end gap-2 w-full md:w-auto shrink-0">
+                                    {activeTeknik.toLowerCase().includes('dokumentasi') && (
+                                      <button onClick={() => alert("Smart Assistant [SN-Dikti]: Pastikan kutipan dokumen ini tidak bertentangan dengan hasil observasi atau transkrip wawancara di lapangan! Lakukan *cross-checking* (Triangulasi) pada kolom paling kanan di tabel ini agar dosen pembimbing Anda memahami bahwa Anda tidak sekadar mengarang kaitan antar variabel.")} className="bg-amber-100 hover:bg-amber-200 text-amber-700 px-4 py-2.5 rounded-xl text-[10px] uppercase font-bold tracking-widest transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2 print:hidden focus:outline-none shrink-0 border border-amber-300">
+                                        <Info className="w-3.5 h-3.5" /> Triangulasi Validitas
+                                      </button>
+                                    )}
+                                    <button onClick={(e) => { e.currentTarget.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check-circle-2"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg> Tersimpan'; e.currentTarget.classList.replace('bg-[#145d7a]','bg-[#10b981]'); e.currentTarget.classList.replace('border-[#145d7a]/50','border-[#10b981]/50'); }} className="bg-[#145d7a] hover:opacity-90 text-white px-5 py-2.5 rounded-xl text-[10px] uppercase font-black tracking-widest transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2 print:hidden focus:outline-none shrink-0 border border-[#145d7a]/50">
+                                      <Save className="w-3.5 h-3.5" /> Simpan
+                                    </button>
+                                  </div>
+                                </div>
                               </div>
+                              {activeTeknik.toLowerCase().includes('dokumentasi') && (
+                                <details className="mt-2 mb-4 mx-4 bg-amber-50/50 print:bg-transparent border border-amber-200/60 print:border-[#bbb] rounded-xl shadow-sm print:shadow-none break-inside-avoid group cursor-pointer transition-all">
+                                  <summary className="px-5 py-3 outline-none flex flex-col justify-center list-none [&::-webkit-details-marker]:hidden">
+                                    <div className="flex items-center justify-between w-full border-amber-200/50 print:border-[#bbb] group-open:border-b group-open:pb-2 group-open:mb-2 transition-all">
+                                      <h5 className="text-[11px] print:text-[10px] font-black text-amber-800 print:text-black tracking-wider uppercase flex items-center gap-1.5 focus:outline-none">
+                                        <AlertCircle className="w-3.5 h-3.5" /> Pedoman Kualitas Dokumen (The 4-A Validity Test)
+                                      </h5>
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-[9px] text-amber-600/80 italic font-medium group-open:hidden uppercase">Klik untuk melihat pedoman</span>
+                                        <ChevronDown className="w-4 h-4 text-amber-700 transition-transform duration-300 group-open:-rotate-180" />
+                                      </div>
+                                    </div>
+                                  </summary>
+                                  <div className="px-5 pb-4 pt-1 text-[10px] print:text-[9.5px] text-slate-700 print:text-[#333] space-y-3 leading-relaxed w-full cursor-default">
+                                    <div className="bg-white/50 print:bg-transparent p-2.5 rounded border border-amber-100 print:border-none print:p-0">
+                                      <p className="font-bold italic mb-2 text-amber-900 border-l-2 border-amber-400 pl-2">Filter kualitas tabel matriks ekstraksi ini menggunakan parameter akademik Kemendikbudristek:</p>
+                                      <ul className="list-disc pl-5 space-y-1.5 mt-1 print:pl-4">
+                                        <li><strong>Authenticity (Keaslian):</strong> Dokumen yang dipindahkan ke matriks ini harus merupakan naskah asli atau salinan sah, bukan arsip yang tidak diakui instansi (hindari plagiarisme/<em>forgery</em>).</li>
+                                        <li><strong>Authority (Otoritas Kredibel):</strong> Bukti tertulis diterbitkan secara sah (SK Rektor, Peraturan Menteri, Laporan TTD, dst). Jangan mengutip entitas sekunder tanpa landasan.</li>
+                                        <li><strong>Accuracy (Akurasi Tinggi):</strong> Anda harus membaca cermat sebelum mengekstraksi data. Kutipan Tidak boleh memiliki benturan/kesalahan internal dengan bab-bab sebelumnya.</li>
+                                        <li><strong>Adjacency (Keterkinian Data):</strong> Pastikan lokus subjek & tahun dokumen masih sangat relevan (<em>recent</em>) sebagai pendukung landasan teori Anda di Bab 1 & 2.</li>
+                                      </ul>
+                                    </div>
+                                    <div className="bg-white/50 print:bg-transparent p-2.5 rounded border border-amber-100 print:border-none print:p-0 mt-3 border-t border-dashed">
+                                      <p className="font-bold italic mb-2 text-amber-900 border-l-2 border-amber-400 pl-2">SOP Prosedur Analisis Data Dokumentasi:</p>
+                                      <ul className="list-decimal pl-5 space-y-1.5 mt-1 print:pl-4 font-medium text-slate-800">
+                                        <li><strong className="text-amber-800">1. Analisis Deskriptif:</strong> Identifikasi frekuensi kemunculan kata kunci, regulasi, atau temuan dominan pada kolom 'Kutipan Data Otentik'.</li>
+                                        <li><strong className="text-amber-800">2. Reduksi Data:</strong> Filter dokumen redundan, fokuskan pengkodean pada kolom 'Relasi Indikator' untuk mereduksi kompleksitas subjek.</li>
+                                        <li><strong className="text-amber-800">3. Interpretasi & Pembahasan:</strong> Gunakan kolom 'Makna' untuk menautkan temuan dokumen dengan teori di Bab 2. Lakukan evaluasi akhir di kolom 'Triangulasi'.</li>
+                                        <li><strong className="text-amber-800">4. Penarikan Kesimpulan:</strong> Rangkum seluruh relasi dokumen hasil reduksi untuk menjawab rumusan masalah secara komprehensif.</li>
+                                      </ul>
+                                    </div>
+                                    <div className="bg-white/50 print:bg-transparent p-2.5 rounded border border-amber-100 print:border-none print:p-0 mt-3 border-t border-dashed">
+                                      <p className="font-bold italic mb-2 text-amber-900 border-l-2 border-amber-400 pl-2">Alur Mekanisme Triangulasi Multi-Instrumen:</p>
+                                      <ol className="list-decimal pl-5 space-y-1.5 mt-1 print:pl-4 font-medium text-slate-700">
+                                        <li>Pilih opsi <strong className="text-amber-800">Wawancara</strong> dari menu <em>Teknik Pengambilan Data</em>, lalu klik <strong className="text-amber-800">Hasilkan Instrumen</strong> untuk menyusun daftar pertanyaan primer.</li>
+                                        <li>Kemudian, pilih kembali <strong className="text-amber-800">Studi Dokumentasi</strong> dan klik *Generate* untuk menyusun Matriks Ekstraksi khusus dokumen ini.</li>
+                                        <li>Gunakan kolom <strong className="text-amber-800">Relasi Indikator / Triangulasi</strong> pada tabel dokumen secara aktif untuk menyilangkan hasil dokumen dengan pernyataan narasumber dari tebel Wawancara sebelumnya!</li>
+                                      </ol>
+                                    </div>
+                                  </div>
+                                </details>
+                              )}
+                              {mainTeknik.toLowerCase() === 'eksperimen' && (
+                                <details className="mt-2 mb-4 mx-4 bg-blue-50/50 print:bg-transparent border border-blue-200/60 print:border-[#bbb] rounded-xl shadow-sm print:shadow-none break-inside-avoid group cursor-pointer transition-all">
+                                  <summary className="px-5 py-3 outline-none flex flex-col justify-center list-none [&::-webkit-details-marker]:hidden">
+                                    <div className="flex flex-wrap items-center justify-between w-full border-blue-200/50 print:border-[#bbb] group-open:border-b group-open:pb-2 group-open:mb-2 transition-all">
+                                      <div className="flex items-center gap-2">
+                                        <h5 className="text-[11px] print:text-[10px] font-black text-[#0c4a6e] print:text-black tracking-wider uppercase">Pedoman Instrumen Eksperimen</h5>
+                                        <span className="text-[9px] text-[#0c4a6e]/80 italic font-medium group-open:hidden uppercase ml-2">Klik untuk melihat pedoman</span>
+                                        <ChevronDown className="w-4 h-4 text-[#0c4a6e] transition-transform duration-300 group-open:-rotate-180" />
+                                      </div>
+                                      <div className="flex gap-1.5 print:hidden">
+                                        <button onClick={(e) => { e.preventDefault(); setSelectedDesign(prev => ({...prev, [group.dimensi]: 'RAL'}))}} className={`text-[9px] px-2 py-0.5 rounded font-bold uppercase transition hover:opacity-80 ${selectedDesign[group.dimensi] === 'RAL' ? 'bg-blue-600 text-white border border-blue-600' : 'bg-white text-slate-500 border border-slate-300'}`}>Pilih RAL</button>
+                                        <button onClick={(e) => { e.preventDefault(); setSelectedDesign(prev => ({...prev, [group.dimensi]: 'RAK'}))}} className={`text-[9px] px-2 py-0.5 rounded font-bold uppercase transition hover:opacity-80 ${selectedDesign[group.dimensi] === 'RAK' ? 'bg-blue-600 text-white border border-blue-600' : 'bg-white text-slate-500 border border-slate-300'}`}>Pilih RAK</button>
+                                        <button onClick={(e) => { e.preventDefault(); setSelectedDesign(prev => ({...prev, [group.dimensi]: 'ANAKOVA'}))}} className={`text-[9px] px-2 py-0.5 rounded font-bold uppercase transition hover:opacity-80 ${selectedDesign[group.dimensi] === 'ANAKOVA' ? 'bg-blue-600 text-white border border-blue-600' : 'bg-white text-slate-500 border border-slate-300'}`}>Pilih ANAKOVA</button>
+                                      </div>
+                                    </div>
+                                  </summary>
+                                  <div className="px-5 pb-4 pt-1 text-[10px] print:text-[9.5px] text-slate-700 print:text-[#333] space-y-3 leading-relaxed w-full cursor-default">
+                                    {(!selectedDesign[group.dimensi] || selectedDesign[group.dimensi] === 'RAL') && (
+                                    <div className="bg-white/50 print:bg-transparent p-2.5 rounded border border-blue-100 print:border-none print:p-0">
+                                      <div className="font-black text-[#0c4a6e] print:text-black uppercase text-[10px] mb-1.5 flex items-center gap-1.5 flex-wrap">
+                                        <span className="bg-blue-600 text-white print:bg-black px-1.5 py-0.5 rounded text-[9px] print:text-white mt-[-1px]">1</span> 
+                                        Rancangan Acak Lengkap (RAL) 
+                                        <span className="normal-case font-medium text-slate-500 print:text-[#333] italic">- Asumsi Lingkungan Homogen</span>
+                                      </div>
+                                      <ul className="list-decimal pl-5 space-y-1 mt-1 print:pl-4">
+                                        <li><strong>Langkah 1:</strong> Input identitas seluruh unit percobaan ke kolom <strong className="text-slate-800">SUBJEK / OBJEK TARGET</strong> setelah pengacakan penuh dilakukan.</li>
+                                        <li><strong>Langkah 2:</strong> Catat hasil murni dari intervensi parameter ke kolom <strong className="text-slate-800">ANGKA / NILAI TERUKUR</strong> sebagai nilai efek Perlakuan.</li>
+                                        <li><strong>Langkah 3:</strong> Input setiap anomali teknis lapangan ke kolom <strong className="text-slate-800">CATATAN KUALITATIF</strong> sebagai parameter argumen pembentuk Galat mutlak.</li>
+                                      </ul>
+                                    </div>
+                                    )}
+
+                                    {(!selectedDesign[group.dimensi] || selectedDesign[group.dimensi] === 'RAK') && (
+                                    <div className="bg-white/50 print:bg-transparent p-2.5 rounded border border-blue-100 print:border-none print:p-0">
+                                      <div className="font-black text-[#0c4a6e] print:text-black uppercase text-[10px] mb-1.5 flex items-center gap-1.5 flex-wrap">
+                                        <span className="bg-blue-600 text-white print:bg-black px-1.5 py-0.5 rounded text-[9px] print:text-white mt-[-1px]">2</span> 
+                                        Rancangan Acak Kelompok (RAK)
+                                        <span className="normal-case font-medium text-slate-500 print:text-[#333] italic">- Asumsi Lingkungan Heterogen</span>
+                                      </div>
+                                      <ul className="list-decimal pl-5 space-y-1 mt-1 print:pl-4">
+                                        <li><strong>Langkah 1:</strong> Manfaatkan fitur <em>(edit)</em> header untuk merevisi nama kolom, atau tambahkan kode grup eksplisit pada <strong>SUBJEK / OBJEK TARGET</strong> guna menetapkannya sebagai parameter <em>Kelompok/Blok</em> spesifik.</li>
+                                        <li><strong>Langkah 2:</strong> Isi hasil pengukuran pada kolom <strong className="text-slate-800">ANGKA / NILAI TERUKUR</strong>, pastikan eksekusi dirandomisasi terpisah secara spesifik di dalam tiap blok/kelompok.</li>
+                                        <li><strong>Langkah 3:</strong> Gunakan kolom <strong className="text-slate-800">CATATAN KUALITATIF</strong> untuk merinci varians lingkungan pada blok tersebut agar tidak menyimpang lalu terhitung sebagai galat bebas.</li>
+                                      </ul>
+                                    </div>
+                                    )}
+
+                                    {(!selectedDesign[group.dimensi] || selectedDesign[group.dimensi] === 'ANAKOVA') && (
+                                    <div className="bg-white/50 print:bg-transparent p-2.5 rounded border border-blue-100 print:border-none print:p-0">
+                                      <div className="font-black text-[#0c4a6e] print:text-black uppercase text-[10px] mb-1.5 flex items-center gap-1.5 flex-wrap">
+                                        <span className="bg-blue-600 text-white print:bg-black px-1.5 py-0.5 rounded text-[9px] print:text-white mt-[-1px]">3</span> 
+                                        Analisis Kovariat (ANAKOVA)
+                                        <span className="normal-case font-medium text-slate-500 print:text-[#333] italic">- Integrasi Reduksi Galat</span>
+                                      </div>
+                                      <ul className="list-decimal pl-5 space-y-1 mt-1 print:pl-4">
+                                        <li><strong>Langkah 1:</strong> Manfaatkan tombol <em>(edit)</em> header untuk mendedikasikan pengukuran pra-intervensi (<strong className="text-slate-900 print:text-black">Kovariat</strong>) sebelum instrumen perlakuan utama/parameter dilaksanakan pada subjek.</li>
+                                        <li><strong>Langkah 2:</strong> Segera setelah intervensi selesai, rekam parameter hasil akhir efek eksperimen (RAL/RAK) pada kolom <strong>ANGKA / NILAI TERUKUR</strong>.</li>
+                                        <li><strong>Langkah 3:</strong> Beri keterangan kausalitas tambahan di <strong>CATATAN KUALITATIF</strong>; data di instrumen pengumpulan ini akan diregresi silang pada eksekusi komparasi Bab 4 nanti.</li>
+                                      </ul>
+                                    </div>
+                                    )}
+                                    <div className="mt-3 bg-[#f0f9ff] print:bg-transparent p-3 rounded-lg border border-[#bae6fd] print:border-none print:p-0">
+                                      <div className="font-bold text-[#0369a1] print:text-black mb-1.5 flex items-center gap-1.5">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-lightbulb"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1.3.5 2.6 1.5 3.5.8.8 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>
+                                        Tips Tabulasi Pra-Software Statistik (SPSS/JASP/R):
+                                      </div>
+                                      <ul className="list-disc pl-5 text-[10px] print:text-[9.5px] text-slate-700 print:text-[#333] space-y-1">
+                                        <li>Tabel di atas bersifat <em className="text-[#0369a1]">editable</em> (dapat diketik langsung). Manfaatkan fitur ini untuk langsung menyusun <strong>Coding Angka</strong> secara *real-time* sebelum di-ekspor ke Excel.</li>
+                                        <li>Isi baris observasi di kolom <strong>SUBJEK / OBJEK TARGET</strong> murni dengan representasi numerik (contoh: isi angka '1' untuk Perlakuan A, '2' untuk Perlakuan B) alih-alih merangkum teks naratif.</li>
+                                        <li>Pastikan kolom <strong>ANGKA / NILAI TERUKUR</strong> murni terisi angka (tanpa label/satuan seperti 'kg' atau 'meter') agar dataset lampiran Anda 100% siap saat di-impor ke aplikasi uji hipotesis.</li>
+                                      </ul>
+                                    </div>
+                                  </div>
+                                </details>
+                              )}
                             </div>
                           );
                         }
@@ -996,76 +1343,140 @@ ${coverText}`;
                           const isWawancara = mainTeknik.toLowerCase().includes('wawancara');
 
                           if (isWawancara) {
-                            const pertanyaanList = item.pertanyaan || [
-                              `Bagaimana pandangan subjektif Anda mengenai aspek ${item.parameter} dalam hal ini?`,
-                              `Faktor teknis apa saja yang secara langsung memengaruhi kondisi ${item.parameter} menurut pengalaman Anda?`,
-                              `Menurut pandangan Anda, pendekatan apa yang paling efektif untuk memecahkan kendala pada ${group.dimensi.replace(/dimensi /i, '').toLowerCase()} tersebut?`
-                            ];
+                            const listCount = parseInt(questionCounts[item.id] || "5", 10);
+                            const pertanyaanList = item.pertanyaan || [...Array(listCount)].map((_, i) => `(Tulis pertanyaan wawancara ${i + 1} untuk ${item.parameter})`);
 
                             elements.push(
-                              <div key={item.id} className="mt-12 mb-2 p-8 rounded-2xl border border-slate-700 w-full shadow-2xl bg-[#1e2432] print:bg-transparent print:break-inside-avoid print:break-after-page print:shadow-none print:border-none print:p-0 print:m-0">
-                                <h4 className="text-[16px] font-bold text-white print:text-black border-b border-slate-700 pb-4 mb-6">
+                              <div key={item.id} className="mt-12 mb-2 p-8 rounded-2xl border border-slate-200 w-full shadow-lg bg-white print:bg-transparent print:break-inside-avoid print:break-after-page print:shadow-none print:border-none print:p-0 print:m-0">
+                                <h4 className="text-[16px] font-bold text-slate-800 print:text-black border-b border-slate-200 pb-4 mb-6">
                                   Draf Pertanyaan Wawancara: <span className="text-[#0ea5e9] uppercase tracking-wide">{item.parameter}</span>
                                 </h4>
                                 <ul className="space-y-6">
                                   {pertanyaanList.map((tanya, qIdx) => (
                                     <li key={qIdx} className="flex gap-4 items-start">
-                                      <div className="w-8 h-8 rounded-full bg-[#0ea5e9]/20 flex items-center justify-center text-[#0ea5e9] font-bold shrink-0">{qIdx + 1}</div>
+                                      <div className="w-8 h-8 rounded-full bg-[#0ea5e9]/10 flex items-center justify-center text-[#0ea5e9] font-bold shrink-0">{qIdx + 1}</div>
                                       <div className="flex-1">
-                                        <p className="text-[14px] text-slate-300 print:text-[#333] font-medium leading-relaxed">{tanya}</p>
-                                        <div className="mt-3 w-full border-b-2 border-dotted border-slate-600 print:border-[#bbb] h-8"></div>
-                                        <div className="w-full border-b-2 border-dotted border-slate-600 print:border-[#bbb] h-8"></div>
+                                        <p className="text-[14px] text-slate-700 print:text-[#333] font-medium leading-relaxed">{tanya}</p>
+                                        <div contentEditable="true" suppressContentEditableWarning={true} className="mt-3 w-full border-b-2 border-dotted border-slate-300 print:border-[#bbb] min-h-[2rem] outline-none focus:border-solid focus:border-[#0ea5e9] focus:bg-[#f0f9ff] transition-all cursor-text text-sm font-medium text-slate-800 p-1"></div>
+                                        <div contentEditable="true" suppressContentEditableWarning={true} className="w-full border-b-2 border-dotted border-slate-300 print:border-[#bbb] min-h-[2rem] outline-none focus:border-solid focus:border-[#0ea5e9] focus:bg-[#f0f9ff] transition-all cursor-text text-sm font-medium text-slate-800 p-1"></div>
                                       </div>
                                     </li>
                                   ))}
                                 </ul>
-                                <div className="mt-8 pt-6 px-4 text-left border-t border-slate-700/50 print:border-[#bbb]">
-                                  <p className="text-[12px] font-medium leading-relaxed italic border-l-2 border-[#0ea5e9] pl-3 text-slate-400 print:text-[#333]">
+                                <div className="mt-8 pt-6 px-4 text-left border-t border-slate-200 print:border-[#bbb]">
+                                  <p className="text-[12px] font-medium leading-relaxed italic border-l-2 border-[#0ea5e9] pl-3 text-slate-500 print:text-[#333]">
                                     * <strong>Tips & SOP Probing:</strong> <span className={item.lampiranInstruksi ? "text-[#0ea5e9] print:text-[#333]" : ""}>{item.lampiranInstruksi || "Gali inti fenomena dengan prinsip 5W 1H tanpa mengarahkan subjek ke jawaban bias."}</span>
                                   </p>
                                 </div>
                               </div>
                             );
                           } else {
-                            const fallbackItemHeaders = mainTeknik.toLowerCase() === 'kuesioner' ? (researchData.skalaKuesioner?.includes('Guttman') ? ['Item Pernyataan Indikator', 'Ya', 'Tidak'] : ['Item Pernyataan Indikator', 'SS', 'S', 'N', 'TS', 'STS']) : ['Subjek / Objek Target', 'Angka / Nilai Terukur', 'Catatan Kualitatif / Dokumentasi'];
-                            const headers = ['No', ...(item.lampiranHeaders || fallbackItemHeaders)];
+                            const fallbackItemHeaders = mainTeknik.toLowerCase() === 'kuesioner' ? (researchData.skalaKuesioner?.includes('Guttman') ? ['Item Pernyataan Indikator', 'Ya', 'Tidak'] : ['Item Pernyataan Indikator', 'SS', 'S', 'N', 'TS', 'STS']) : activeTeknik.toLowerCase().includes('dokumentasi') ? ['Kode Arsip', 'Nama Dokumen Resmi', 'Kutipan Data Otentik', 'Interpretasi / Makna', 'Satuan Ukur / Tipe', 'Relasi Indikator / Triangulasi'] : ['Subjek / Objek Target', 'Angka / Nilai Terukur', 'Catatan Kualitatif / Dokumentasi'];
+                            const headers = ['No', ...(activeTeknik.toLowerCase().includes('dokumentasi') ? fallbackItemHeaders : (item.lampiranHeaders || fallbackItemHeaders))];
                             const colCount = headers.length;
                             elements.push(
-                              <div key={item.id} className="mt-12 mb-2 overflow-x-auto rounded-2xl border border-slate-700 w-full shadow-2xl print:break-inside-avoid print:break-after-page print:shadow-none print:border-none print:m-0">
+                              <div key={item.id} className="mt-12 mb-2 overflow-x-auto rounded-2xl border border-slate-300 w-full shadow-lg print:break-inside-avoid print:break-after-page print:shadow-none print:border-none print:m-0">
                                 <table className="w-full text-left border-collapse min-w-[800px]">
                                   <thead>
                                     <tr>
-                                      <th colSpan={colCount} className="bg-[#1e2432] p-5 text-[15px] font-bold text-white border-b border-slate-700 tracking-wide text-center">
-                                        {mainTeknik.toLowerCase() === 'kuesioner' ? 'Tabel Draf Pernyataan Indikator: ' : 'Tabel Lampiran Detail Observasi: '} {item.parameter}
+                                      <th colSpan={colCount} contentEditable="true" suppressContentEditableWarning={true} className="bg-white p-5 text-[15px] font-bold text-[#2d2825] border-b border-slate-300 tracking-wide text-center outline-none focus:bg-slate-50 transition-colors">
+                                        {mainTeknik.toLowerCase() === 'kuesioner' ? 'Tabel Draf Pernyataan Indikator: ' : 'Tabel Lampiran Detail Observasi: '} {item.parameter} {selectedDesign[item.id] && <span className="text-[#0ea5e9]">[{selectedDesign[item.id]}]</span>} <span className="text-[9px] text-[#0369a1] opacity-70 ml-1 underline font-normal cursor-pointer hover:opacity-100">(edit)</span>
                                       </th>
                                     </tr>
-                                    <tr className="bg-[#222836] border-b border-slate-700">
+                                    <tr className="bg-[#f8f5f3] border-b border-slate-300">
                                       {headers.map((col, cIdx) => (
-                                        <th key={cIdx} className={`p-4 text-[12px] uppercase font-bold text-[#0ea5e9] tracking-wide ${cIdx === 0 ? 'w-14 text-center border-r' : 'border-r'} border-slate-700/50`}>
-                                          {col}
+                                        <th key={cIdx} contentEditable="true" suppressContentEditableWarning={true} className={`p-4 text-[12px] uppercase font-bold text-[#0369a1] tracking-wide ${cIdx === 0 ? 'w-14 text-center border-r' : 'border-r'} border-slate-300 outline-none focus:bg-blue-50 transition-colors cursor-text`}>
+                                          {col} <span className="text-[9px] opacity-60 ml-1 normal-case font-medium lowercase">(edit)</span>
                                         </th>
                                       ))}
                                     </tr>
                                   </thead>
                                   <tbody>
-                                      {(mainTeknik.toLowerCase() === 'kuesioner' && item.pernyataan ? item.pernyataan : [...Array(19)].map(() => null)).map((stmt, rIdx) => (
-                                        <tr key={rIdx} className="bg-[#181d27] border-b border-slate-700 hover:bg-[#1e2432] transition-colors print:h-[13.5mm]">
+                                      {(mainTeknik.toLowerCase() === 'kuesioner' && item.pernyataan ? item.pernyataan : [...Array(parseInt(questionCounts[item.id] || "10", 10))].map(() => null)).map((stmt, rIdx) => (
+                                        <tr key={rIdx} className="bg-white border-b border-slate-200 hover:bg-slate-50 transition-colors print:h-[13.5mm]">
                                           {[...Array(colCount)].map((_, cIdx) => (
-                                            <td key={cIdx} className={`p-4 text-[13px] font-medium ${cIdx === 1 && stmt ? 'text-slate-200 text-left' : 'text-slate-400 text-center'} border-r border-slate-800`}>
+                                            <td key={cIdx} contentEditable="true" suppressContentEditableWarning={true} className={`p-4 text-[13px] font-medium ${cIdx === 1 && stmt ? 'text-[#2d2825] text-left' : 'text-slate-600 text-center'} border-r border-slate-300 outline-none focus:bg-slate-50 transition-colors cursor-text`}>
                                               {cIdx === 0 ? rIdx + 1 : (cIdx === 1 && stmt) ? (
                                                 <div className="leading-relaxed">
                                                   {typeof stmt === 'object' ? (
                                                     <div>
                                                       <p>{stmt.teks}</p>
-                                                      <div className="flex gap-2 mt-2 font-bold mb-1 print:hidden">
-                                                        <span className="text-[9px] bg-slate-700/50 text-[#0ea5e9] px-2 py-0.5 rounded uppercase tracking-wider">{stmt.sifat}</span>
-                                                        <span className="text-[9px] bg-slate-700/50 text-indigo-400 px-2 py-0.5 rounded uppercase tracking-wider">{stmt.skor}</span>
+                                                      <div contentEditable="false" className="flex gap-2 mt-2 font-bold mb-1 print:hidden select-none">
+                                                        <span 
+                                                          className={`text-[9px] px-2 py-0.5 rounded uppercase tracking-wider border cursor-pointer transition-colors ${stmt.sifat?.toUpperCase() === 'UNFAVORABLE' ? 'bg-rose-50 text-rose-600 border-rose-200 hover:bg-rose-100' : 'bg-[#eef2ff] text-[#4f46e5] border-[#c7d2fe] hover:bg-indigo-100'}`}
+                                                          onClick={(e) => {
+                                                            const tr = e.currentTarget.closest('tr');
+                                                            const cols = tr.querySelectorAll('td');
+                                                            
+                                                            // Determine maximum clickable index based on total columns
+                                                            const maxIdx = cols.length - 1; // 3 for Guttman, 6 for Likert
+                                                            
+                                                            // Read current source label to know if Favorable/Unfavorable
+                                                            const currSifat = e.currentTarget.innerText.toUpperCase();
+                                                            
+                                                            // Read current cycle index from dataset, default to 1 (before click 1)
+                                                            let cycleIdx = parseInt(e.currentTarget.dataset.cycle) || 1;
+                                                            
+                                                            // Calculate target column index based on cycle.
+                                                            // For Likert: 2 -> 3 -> 4 -> 5 -> 6 -> 2
+                                                            // For Guttman: 2 -> 3 -> 2
+                                                            let targetCol = cycleIdx + 1;
+                                                            if (targetCol > maxIdx) {
+                                                              targetCol = 2; // reset to first choice
+                                                              cycleIdx = 1;
+                                                            } else {
+                                                              cycleIdx++;
+                                                            }
+                                                            
+                                                            // Determine numerical score based on scale and target column
+                                                            let scoreVal = '✔';
+                                                            if (maxIdx === 6) { // Likert
+                                                              if (currSifat === 'FAVORABLE') {
+                                                                const scores = { 2: '5', 3: '4', 4: '3', 5: '2', 6: '1' };
+                                                                scoreVal = scores[targetCol] || '✔';
+                                                              } else {
+                                                                const scores = { 2: '1', 3: '2', 4: '3', 5: '4', 6: '5' };
+                                                                scoreVal = scores[targetCol] || '✔';
+                                                              }
+                                                            } else if (maxIdx === 3) { // Guttman
+                                                              if (currSifat === 'FAVORABLE') {
+                                                                const scores = { 2: '1', 3: '0' };
+                                                                scoreVal = scores[targetCol] || '✔';
+                                                              } else {
+                                                                const scores = { 2: '0', 3: '1' };
+                                                                scoreVal = scores[targetCol] || '✔';
+                                                              }
+                                                            }
+                                                            
+                                                            // Update dataset for next click
+                                                            e.currentTarget.dataset.cycle = cycleIdx;
+
+                                                            // Bersihkan semua isian di kolom skor
+                                                            for(let i = 2; i < cols.length; i++) {
+                                                              const inner = cols[i].querySelector('div');
+                                                              if(inner) {
+                                                                inner.innerHTML = '&nbsp;';
+                                                                inner.classList.remove('text-[#10b981]', 'scale-125', 'font-black');
+                                                              }
+                                                            }
+
+                                                            // Centang kolom target dengan angka skor
+                                                            const targetInner = cols[targetCol]?.querySelector('div');
+                                                            if (targetInner) {
+                                                              targetInner.innerHTML = scoreVal;
+                                                              targetInner.classList.add('text-[#10b981]', 'scale-125', 'font-black', 'transition-transform');
+                                                            }
+                                                          }}
+                                                        >
+                                                          {stmt.sifat}
+                                                        </span>
+                                                        <span className="text-[9px] bg-[#fdf4ff] text-[#c026d3] px-2 py-0.5 rounded uppercase tracking-wider border border-[#f5d0fe]">{stmt.skor}</span>
                                                       </div>
                                                     </div>
                                                   ) : (stmt.teks || stmt)}
                                                 </div>
                                               ) : (
-                                                <div className="w-full flex items-center justify-center h-full"><span className="inline-block border-b-2 border-dotted border-slate-600 w-11/12 translate-y-1">&nbsp;</span></div>
+                                                <div className="w-11/12 mx-auto flex items-center justify-center min-h-[24px] border-b-2 border-dotted border-slate-400 text-base font-black text-[#0ea5e9] outline-none transition-all focus:border-solid focus:border-[#0ea5e9] focus:bg-[#f0f9ff] cursor-text pb-0.5">&nbsp;</div>
                                               )}
                                             </td>
                                           ))}
@@ -1073,11 +1484,148 @@ ${coverText}`;
                                       ))}
                                   </tbody>
                                 </table>
-                                <div className="mt-4 px-2 pb-4 text-left text-slate-400 print:text-[#333]">
-                                  <p className="text-[11px] print:text-[10px] font-medium leading-relaxed italic border-l-2 border-[#0ea5e9] print:border-[#333] pl-3">
-                                    * <strong>SOP Teknis:</strong> <span className={item.lampiranInstruksi ? "text-[#0ea5e9] print:text-[#333]" : ""}>{item.lampiranInstruksi || `Lakukan eksekusi secara mendalam untuk parameter ${item.parameter}.`}</span>
-                                  </p>
+                                <div className="mt-4 px-2 pb-4 bg-white pt-4 rounded-b-2xl">
+                                  <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-4">
+                                    <div className="flex flex-col gap-1.5 w-full md:w-auto flex-1">
+                                      <p className="text-[11px] print:text-[10px] font-medium leading-relaxed italic border-l-2 border-[#0ea5e9] print:border-[#333] pl-3 text-slate-600 print:text-[#333] text-left">
+                                        * <strong>SOP Teknis:</strong> <span className={item.lampiranInstruksi ? "text-[#0ea5e9] print:text-[#333]" : ""}>{item.lampiranInstruksi || (mainTeknik.toLowerCase() === 'eksperimen' ? `Terapkan protokol eksperimen dan catat hasil pengukuran secara objektif dan terukur untuk parameter ${item.parameter}.` : `Lakukan eksekusi secara mendalam untuk parameter ${item.parameter}.`)}</span>
+                                      </p>
+                                      {mainTeknik.toLowerCase() === 'kuesioner' && (
+                                        <p className="text-[10px] print:text-[9.5px] font-medium border-l-2 border-indigo-400 print:border-[#333] pl-3 text-slate-500 print:text-[#333] text-left py-0.5">
+                                          <strong className="text-indigo-600">Info Skoring:</strong> <strong>Favorable</strong> (Pernyataan Positif/Mendukung) &mdash; <strong>Unfavorable</strong> (Pernyataan Negatif/Tidak Mendukung). <em className="text-slate-400">*Klik tombol di atas untuk tes simulasi</em>
+                                        </p>
+                                      )}
+                                    </div>
+                                    <div className="flex flex-wrap items-center justify-start md:justify-end gap-2 w-full md:w-auto shrink-0">
+                                      {activeTeknik.toLowerCase().includes('dokumentasi') && (
+                                        <button onClick={() => alert("Smart Assistant [SN-Dikti]: Pastikan kutipan dokumen ini tidak bertentangan dengan hasil observasi atau transkrip wawancara di lapangan! Lakukan *cross-checking* (Triangulasi) pada kolom paling kanan di tabel ini agar dosen pembimbing Anda memahami bahwa Anda tidak sekadar mengarang kaitan antar variabel.")} className="bg-amber-100 hover:bg-amber-200 text-amber-700 px-4 py-2.5 rounded-xl text-[10px] uppercase font-bold tracking-widest transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2 print:hidden focus:outline-none shrink-0 border border-amber-300">
+                                          <Info className="w-3.5 h-3.5" /> Triangulasi Validitas
+                                        </button>
+                                      )}
+                                      <button onClick={(e) => { e.currentTarget.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check-circle-2"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg> Tersimpan'; e.currentTarget.classList.replace('bg-[#145d7a]','bg-[#10b981]'); e.currentTarget.classList.replace('border-[#145d7a]/50','border-[#10b981]/50'); }} className="bg-[#145d7a] hover:opacity-90 text-white px-5 py-2.5 rounded-xl text-[10px] uppercase font-black tracking-widest transition-all shadow-sm active:scale-95 flex items-center justify-center gap-2 print:hidden focus:outline-none shrink-0 border border-[#145d7a]/50">
+                                        <Save className="w-3.5 h-3.5" /> Simpan
+                                      </button>
+                                    </div>
+                                  </div>
                                 </div>
+                                {activeTeknik.toLowerCase().includes('dokumentasi') && (
+                                  <details className="mt-2 mb-4 mx-4 bg-amber-50/50 print:bg-transparent border border-amber-200/60 print:border-[#bbb] rounded-xl shadow-sm print:shadow-none break-inside-avoid group cursor-pointer transition-all">
+                                    <summary className="px-5 py-3 outline-none flex flex-col justify-center list-none [&::-webkit-details-marker]:hidden">
+                                      <div className="flex items-center justify-between w-full border-amber-200/50 print:border-[#bbb] group-open:border-b group-open:pb-2 group-open:mb-2 transition-all">
+                                        <h5 className="text-[11px] print:text-[10px] font-black text-amber-800 print:text-black tracking-wider uppercase flex items-center gap-1.5 focus:outline-none">
+                                          <AlertCircle className="w-3.5 h-3.5" /> Pedoman Kualitas Dokumen (The 4-A Validity Test)
+                                        </h5>
+                                        <div className="flex items-center gap-2">
+                                          <span className="text-[9px] text-amber-600/80 italic font-medium group-open:hidden uppercase">Klik untuk melihat pedoman</span>
+                                          <ChevronDown className="w-4 h-4 text-amber-700 transition-transform duration-300 group-open:-rotate-180" />
+                                        </div>
+                                      </div>
+                                    </summary>
+                                    <div className="px-5 pb-4 pt-1 text-[10px] print:text-[9.5px] text-slate-700 print:text-[#333] space-y-3 leading-relaxed w-full cursor-default">
+                                      <div className="bg-white/50 print:bg-transparent p-2.5 rounded border border-amber-100 print:border-none print:p-0">
+                                        <p className="font-bold italic mb-2 text-amber-900 border-l-2 border-amber-400 pl-2">Filter kualitas tabel matriks ekstraksi ini menggunakan parameter akademik Kemendikbudristek:</p>
+                                        <ul className="list-disc pl-5 space-y-1.5 mt-1 print:pl-4">
+                                          <li><strong>Authenticity (Keaslian):</strong> Dokumen yang dipindahkan ke matriks ini harus merupakan naskah asli atau salinan sah, bukan arsip yang tidak diakui instansi (hindari plagiarisme/<em>forgery</em>).</li>
+                                          <li><strong>Authority (Otoritas Kredibel):</strong> Bukti tertulis diterbitkan secara sah (SK Rektor, Peraturan Menteri, Laporan TTD, dst). Jangan mengutip entitas sekunder tanpa landasan.</li>
+                                          <li><strong>Accuracy (Akurasi Tinggi):</strong> Anda harus membaca cermat sebelum mengekstraksi data. Kutipan Tidak boleh memiliki benturan/kesalahan internal dengan bab-bab sebelumnya.</li>
+                                          <li><strong>Adjacency (Keterkinian Data):</strong> Pastikan lokus subjek & tahun dokumen masih sangat relevan (<em>recent</em>) sebagai pendukung landasan teori Anda di Bab 1 & 2.</li>
+                                        </ul>
+                                      </div>
+                                      <div className="bg-white/50 print:bg-transparent p-2.5 rounded border border-amber-100 print:border-none print:p-0 mt-3 border-t border-dashed">
+                                        <p className="font-bold italic mb-2 text-amber-900 border-l-2 border-amber-400 pl-2">SOP Prosedur Analisis Data Dokumentasi:</p>
+                                        <ul className="list-decimal pl-5 space-y-1.5 mt-1 print:pl-4 font-medium text-slate-800">
+                                          <li><strong className="text-amber-800">1. Analisis Deskriptif:</strong> Identifikasi frekuensi kemunculan kata kunci, regulasi, atau temuan dominan pada kolom 'Kutipan Data Otentik'.</li>
+                                          <li><strong className="text-amber-800">2. Reduksi Data:</strong> Filter dokumen redundan, fokuskan pengkodean pada kolom 'Relasi Indikator' untuk mereduksi kompleksitas subjek.</li>
+                                          <li><strong className="text-amber-800">3. Interpretasi & Pembahasan:</strong> Gunakan kolom 'Makna' untuk menautkan temuan dokumen dengan teori di Bab 2. Lakukan evaluasi akhir di kolom 'Triangulasi'.</li>
+                                          <li><strong className="text-amber-800">4. Penarikan Kesimpulan:</strong> Rangkum seluruh relasi dokumen hasil reduksi untuk menjawab rumusan masalah secara komprehensif.</li>
+                                        </ul>
+                                      </div>
+                                      <div className="bg-white/50 print:bg-transparent p-2.5 rounded border border-amber-100 print:border-none print:p-0 mt-3 border-t border-dashed">
+                                        <p className="font-bold italic mb-2 text-amber-900 border-l-2 border-amber-400 pl-2">Alur Mekanisme Triangulasi Multi-Instrumen:</p>
+                                        <ol className="list-decimal pl-5 space-y-1.5 mt-1 print:pl-4 font-medium text-slate-700">
+                                          <li>Pilih opsi <strong className="text-amber-800">Wawancara</strong> dari menu <em>Teknik Pengambilan Data</em>, lalu klik <strong className="text-amber-800">Hasilkan Instrumen</strong> untuk menyusun daftar pertanyaan primer.</li>
+                                          <li>Kemudian, pilih kembali <strong className="text-amber-800">Studi Dokumentasi</strong> dan klik *Generate* untuk menyusun Matriks Ekstraksi khusus dokumen ini.</li>
+                                          <li>Gunakan kolom <strong className="text-amber-800">Relasi Indikator / Triangulasi</strong> pada tabel dokumen secara aktif untuk menyilangkan hasil dokumen dengan pernyataan narasumber dari tebel Wawancara sebelumnya!</li>
+                                        </ol>
+                                      </div>
+                                    </div>
+                                  </details>
+                                )}
+                                {mainTeknik.toLowerCase() === 'eksperimen' && (
+                                  <details className="mt-2 mb-4 mx-4 bg-blue-50/50 print:bg-transparent border border-blue-200/60 print:border-[#bbb] rounded-xl shadow-sm print:shadow-none break-inside-avoid group cursor-pointer transition-all">
+                                    <summary className="px-5 py-3 outline-none flex flex-col justify-center list-none [&::-webkit-details-marker]:hidden">
+                                      <div className="flex flex-wrap items-center justify-between w-full border-blue-200/50 print:border-[#bbb] group-open:border-b group-open:pb-2 group-open:mb-2 transition-all">
+                                        <div className="flex items-center gap-2">
+                                          <h5 className="text-[11px] print:text-[10px] font-black text-[#0c4a6e] print:text-black tracking-wider uppercase">Pedoman Instrumen Eksperimen</h5>
+                                          <span className="text-[9px] text-[#0c4a6e]/80 italic font-medium group-open:hidden uppercase ml-2">Klik untuk melihat pedoman</span>
+                                          <ChevronDown className="w-4 h-4 text-[#0c4a6e] transition-transform duration-300 group-open:-rotate-180" />
+                                        </div>
+                                        <div className="flex gap-1.5 print:hidden">
+                                          <button onClick={(e) => { e.preventDefault(); setSelectedDesign(prev => ({...prev, [item.id]: 'RAL'}))}} className={`text-[9px] px-2 py-0.5 rounded font-bold uppercase transition hover:opacity-80 ${selectedDesign[item.id] === 'RAL' ? 'bg-blue-600 text-white border border-blue-600' : 'bg-white text-slate-500 border border-slate-300'}`}>Pilih RAL</button>
+                                          <button onClick={(e) => { e.preventDefault(); setSelectedDesign(prev => ({...prev, [item.id]: 'RAK'}))}} className={`text-[9px] px-2 py-0.5 rounded font-bold uppercase transition hover:opacity-80 ${selectedDesign[item.id] === 'RAK' ? 'bg-blue-600 text-white border border-blue-600' : 'bg-white text-slate-500 border border-slate-300'}`}>Pilih RAK</button>
+                                          <button onClick={(e) => { e.preventDefault(); setSelectedDesign(prev => ({...prev, [item.id]: 'ANAKOVA'}))}} className={`text-[9px] px-2 py-0.5 rounded font-bold uppercase transition hover:opacity-80 ${selectedDesign[item.id] === 'ANAKOVA' ? 'bg-blue-600 text-white border border-blue-600' : 'bg-white text-slate-500 border border-slate-300'}`}>Pilih ANAKOVA</button>
+                                        </div>
+                                      </div>
+                                    </summary>
+                                    <div className="px-5 pb-4 pt-1 text-[10px] print:text-[9.5px] text-slate-700 print:text-[#333] space-y-3 leading-relaxed w-full cursor-default">
+                                      {(!selectedDesign[item.id] || selectedDesign[item.id] === 'RAL') && (
+                                      <div className="bg-white/50 print:bg-transparent p-2.5 rounded border border-blue-100 print:border-none print:p-0">
+                                        <div className="font-black text-[#0c4a6e] print:text-black uppercase text-[10px] mb-1.5 flex items-center gap-1.5 flex-wrap">
+                                          <span className="bg-blue-600 text-white print:bg-black px-1.5 py-0.5 rounded text-[9px] print:text-white mt-[-1px]">1</span> 
+                                          Rancangan Acak Lengkap (RAL) 
+                                          <span className="normal-case font-medium text-slate-500 print:text-[#333] italic">- Asumsi Lingkungan Homogen</span>
+                                        </div>
+                                        <ul className="list-decimal pl-5 space-y-1 mt-1 print:pl-4">
+                                          <li><strong>Langkah 1:</strong> Input identitas seluruh unit percobaan ke kolom <strong className="text-slate-800">SUBJEK / OBJEK TARGET</strong> setelah pengacakan penuh dilakukan.</li>
+                                          <li><strong>Langkah 2:</strong> Catat hasil murni dari intervensi parameter ke kolom <strong className="text-slate-800">ANGKA / NILAI TERUKUR</strong> sebagai nilai efek Perlakuan.</li>
+                                          <li><strong>Langkah 3:</strong> Input setiap anomali teknis lapangan ke kolom <strong className="text-slate-800">CATATAN KUALITATIF</strong> sebagai parameter argumen pembentuk Galat mutlak.</li>
+                                        </ul>
+                                      </div>
+                                      )}
+
+                                      {(!selectedDesign[item.id] || selectedDesign[item.id] === 'RAK') && (
+                                      <div className="bg-white/50 print:bg-transparent p-2.5 rounded border border-blue-100 print:border-none print:p-0">
+                                        <div className="font-black text-[#0c4a6e] print:text-black uppercase text-[10px] mb-1.5 flex items-center gap-1.5 flex-wrap">
+                                          <span className="bg-blue-600 text-white print:bg-black px-1.5 py-0.5 rounded text-[9px] print:text-white mt-[-1px]">2</span> 
+                                          Rancangan Acak Kelompok (RAK)
+                                          <span className="normal-case font-medium text-slate-500 print:text-[#333] italic">- Asumsi Lingkungan Heterogen</span>
+                                        </div>
+                                        <ul className="list-decimal pl-5 space-y-1 mt-1 print:pl-4">
+                                          <li><strong>Langkah 1:</strong> Manfaatkan fitur <em>(edit)</em> header untuk merevisi nama kolom, atau tambahkan kode grup eksplisit pada <strong>SUBJEK / OBJEK TARGET</strong> guna menetapkannya sebagai parameter <em>Kelompok/Blok</em> spesifik.</li>
+                                          <li><strong>Langkah 2:</strong> Isi hasil pengukuran pada kolom <strong className="text-slate-800">ANGKA / NILAI TERUKUR</strong>, pastikan eksekusi dirandomisasi terpisah secara spesifik di dalam tiap blok/kelompok.</li>
+                                          <li><strong>Langkah 3:</strong> Gunakan kolom <strong className="text-slate-800">CATATAN KUALITATIF</strong> untuk merinci varians lingkungan pada blok tersebut agar tidak menyimpang lalu terhitung sebagai galat bebas.</li>
+                                        </ul>
+                                      </div>
+                                      )}
+
+                                      {(!selectedDesign[item.id] || selectedDesign[item.id] === 'ANAKOVA') && (
+                                      <div className="bg-white/50 print:bg-transparent p-2.5 rounded border border-blue-100 print:border-none print:p-0">
+                                        <div className="font-black text-[#0c4a6e] print:text-black uppercase text-[10px] mb-1.5 flex items-center gap-1.5 flex-wrap">
+                                          <span className="bg-blue-600 text-white print:bg-black px-1.5 py-0.5 rounded text-[9px] print:text-white mt-[-1px]">3</span> 
+                                          Analisis Kovariat (ANAKOVA)
+                                          <span className="normal-case font-medium text-slate-500 print:text-[#333] italic">- Integrasi Reduksi Galat</span>
+                                        </div>
+                                        <ul className="list-decimal pl-5 space-y-1 mt-1 print:pl-4">
+                                          <li><strong>Langkah 1:</strong> Manfaatkan tombol <em>(edit)</em> header untuk mendedikasikan pengukuran pra-intervensi (<strong className="text-slate-900 print:text-black">Kovariat</strong>) sebelum instrumen perlakuan utama/parameter dilaksanakan pada subjek.</li>
+                                          <li><strong>Langkah 2:</strong> Segera setelah intervensi selesai, rekam parameter hasil akhir efek eksperimen (RAL/RAK) pada kolom <strong>ANGKA / NILAI TERUKUR</strong>.</li>
+                                          <li><strong>Langkah 3:</strong> Beri keterangan kausalitas tambahan di <strong>CATATAN KUALITATIF</strong>; data di instrumen pengumpulan ini akan diregresi silang pada eksekusi komparasi Bab 4 nanti.</li>
+                                        </ul>
+                                      </div>
+                                      )}
+                                      <div className="mt-3 bg-[#f0f9ff] print:bg-transparent p-3 rounded-lg border border-[#bae6fd] print:border-none print:p-0">
+                                        <div className="font-bold text-[#0369a1] print:text-black mb-1.5 flex items-center gap-1.5">
+                                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-lightbulb"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1.3.5 2.6 1.5 3.5.8.8 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>
+                                          Tips Tabulasi Pra-Software Statistik (SPSS/JASP/R):
+                                        </div>
+                                        <ul className="list-disc pl-5 text-[10px] print:text-[9.5px] text-slate-700 print:text-[#333] space-y-1">
+                                          <li>Tabel di atas bersifat <em className="text-[#0369a1]">editable</em> (dapat diketik langsung). Manfaatkan fitur ini untuk langsung menyusun <strong>Coding Angka</strong> secara *real-time* sebelum di-ekspor ke Excel.</li>
+                                          <li>Isi baris observasi di kolom <strong>SUBJEK / OBJEK TARGET</strong> murni dengan representasi numerik (contoh: isi angka '1' untuk Perlakuan A, '2' untuk Perlakuan B) alih-alih merangkum teks naratif.</li>
+                                          <li>Pastikan kolom <strong>ANGKA / NILAI TERUKUR</strong> murni terisi angka (tanpa label/satuan seperti 'kg' atau 'meter') agar dataset lampiran Anda 100% siap saat di-impor ke aplikasi uji hipotesis.</li>
+                                        </ul>
+                                      </div>
+                                    </div>
+                                  </details>
+                                )}
                               </div>
                             );
                           }
@@ -1092,13 +1640,13 @@ ${coverText}`;
                     <div className="flex justify-center gap-6 mt-16 mb-12 print:hidden w-full">
                       <button
                         onClick={() => handleExportPDF('lampiran-section', 'Tally_Sheet.pdf')}
-                        className="bg-[#0ea5e9]/10 text-[#38bdf8] border border-[#0ea5e9]/30 hover:bg-[#0ea5e9] hover:text-white px-8 py-3.5 rounded-xl font-bold text-[12px] uppercase tracking-widest flex items-center gap-3 transition-all outline-none shadow-xl shadow-[#0ea5e9]/10"
+                        className="bg-white text-[#0284c7] border border-[#0ea5e9]/30 hover:bg-[#0ea5e9] hover:text-white px-8 py-3.5 rounded-xl font-bold text-[12px] uppercase tracking-widest flex items-center gap-3 transition-all outline-none shadow-xl shadow-slate-200"
                       >
                         <Download className="w-5 h-5" /> EXPORT TABEL KE PDF
                       </button>
                       <button
                         onClick={exportLampiranToExcel}
-                        className="bg-[#10b981]/10 text-[#34d399] border border-[#10b981]/30 hover:bg-[#10b981] hover:text-white px-8 py-3.5 rounded-xl font-bold text-[12px] uppercase tracking-widest flex items-center gap-3 transition-all outline-none shadow-xl shadow-[#10b981]/10"
+                        className="bg-white text-[#047857] border border-[#10b981]/30 hover:bg-[#10b981] hover:text-white px-8 py-3.5 rounded-xl font-bold text-[12px] uppercase tracking-widest flex items-center gap-3 transition-all outline-none shadow-xl shadow-slate-200"
                       >
                         <FileSpreadsheet className="w-5 h-5" /> EXPORT KE EXCEL (XLSX)
                       </button>
@@ -1116,7 +1664,7 @@ ${coverText}`;
             <div className="bg-white rounded-[2rem] shadow-sm border border-slate-200/60 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300">
               <div className="p-8 border-b border-slate-100 flex items-center justify-between">
                 <div>
-                  <h3 className="text-2xl font-black text-[#1a2332]">Input Titik Data Primer</h3>
+                  <h3 className="text-2xl font-black text-[#1a2332]">Input Data Primer</h3>
                   <p className="text-sm font-semibold text-slate-400 mt-1 uppercase tracking-widest">Kompilasi Digital Tally Sheet Hasil Lapangan</p>
                 </div>
                 <button onClick={handleTabUtama} className="bg-[#a855f7] text-white px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 shadow-md shadow-purple-500/20 hover:bg-purple-600 transition-all outline-none">
@@ -1183,14 +1731,14 @@ ${coverText}`;
             </div>
           )}
 
-          {/* PAGE STEP 3: ANALISIS BAB 4 */}
+          {/* PAGE STEP 3: TABEL UTAMA */}
           {currentStep === 3 && (
             <div className="bg-white rounded-[2rem] shadow-sm border border-slate-200/60 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300">
               <div className="p-8 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                   <div className="flex items-center gap-3 mb-2">
                     <Table2 className="w-6 h-6 text-[#eab308]" />
-                    <h3 className="text-2xl font-black text-[#1a2332]">Tabel Analisis Bab 4</h3>
+                    <h3 className="text-2xl font-black text-[#1a2332]">Tabel Utama</h3>
                   </div>
                   <p className="text-sm font-semibold text-slate-500 mt-2 max-w-2xl">
                     Rekapitulasi absolut data ini digunakan sebagai komposit visual di Tugas Akhir Anda.
@@ -1213,7 +1761,9 @@ ${coverText}`;
                   <thead className="bg-[#1a2332] text-white">
                     <tr>
                       {tableHeaders.map((h, i) => (
-                        <th key={i} className={`p-4 font-black text-[10px] uppercase tracking-widest border-r border-[#2d3a54] ${i === tableHeaders.length - 1 ? 'border-r-0 bg-[#eab308]' : ''}`}>{h}</th>
+                        <th key={i} contentEditable="true" suppressContentEditableWarning={true} className={`p-4 font-black text-[10px] uppercase tracking-widest border-r border-[#2d3a54] outline-none focus:bg-slate-700 transition-colors cursor-text ${i === tableHeaders.length - 1 ? 'border-r-0 bg-[#eab308]' : ''}`}>
+                          {h} <span className="text-[8px] opacity-50 ml-1 normal-case font-medium lowercase">(edit)</span>
+                        </th>
                       ))}
                     </tr>
                   </thead>
@@ -1221,7 +1771,7 @@ ${coverText}`;
                     {tableRows.map((row, i) => (
                       <tr key={i} className="hover:bg-slate-50 transition-colors">
                         {row.map((cell, j) => (
-                          <td key={j} className={`p-4 text-sm font-bold border-r border-slate-200 ${j >= tableHeaders.length - 1 ? 'text-[#eab308] font-black' : 'text-slate-600'} ${j === row.length - 1 ? 'border-r-0' : ''}`}>
+                          <td key={j} contentEditable="true" suppressContentEditableWarning={true} className={`p-4 text-sm font-bold border-r border-slate-200 outline-none focus:bg-slate-50 transition-colors cursor-text ${j >= tableHeaders.length - 1 ? 'text-[#eab308] font-black' : 'text-slate-600'} ${j === row.length - 1 ? 'border-r-0' : ''}`}>
                             {cell}
                           </td>
                         ))}
@@ -1229,6 +1779,45 @@ ${coverText}`;
                     ))}
                   </tbody>
                 </table>
+                <div className="mt-6 flex justify-end print:hidden">
+                  <button onClick={(e) => { e.currentTarget.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check-circle-2"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg> Tersimpan'; e.currentTarget.classList.replace('bg-[#eab308]','bg-[#10b981]');  }} className="bg-[#eab308] hover:opacity-90 text-white px-6 py-3.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-sm active:scale-95 flex items-center gap-2 focus:outline-none">
+                    <Save className="w-4 h-4" /> Simpan Tabel Utama
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* PAGE STEP 4: DATA SEKUNDER */}
+          {currentStep === 4 && (
+            <div className="bg-white rounded-[2rem] shadow-sm border border-slate-200/60 p-10 space-y-8 relative overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-6 relative text-left">
+                <div>
+                  <div className="flex items-center gap-3 mb-2">
+                    <BookOpen className="w-6 h-6 text-[#10b981]" />
+                    <h3 className="text-2xl font-black text-[#1a2332] tracking-tight">Data Sekunder</h3>
+                  </div>
+                  <p className="text-slate-600 font-medium text-sm max-w-3xl leading-relaxed mt-3 p-4 bg-emerald-50 border border-emerald-100 rounded-xl relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-1 h-full bg-[#10b981]"></div>
+                    <Info className="w-4 h-4 text-emerald-600 inline mr-2 -mt-0.5" />
+                    <strong>Data yang diperoleh secara tidak langsung,</strong> biasanya berupa data yang sudah dikumpulkan oleh pihak lain (misalnya data Badan Pusat Statistik, dokumen perusahaan, atau literatur terdahulu).
+                  </p>
+                </div>
+              </div>
+              
+              <div className="mb-6">
+                <label className={`w-full py-16 rounded-2xl font-black text-[12px] uppercase tracking-widest shadow-sm flex flex-col items-center justify-center gap-4 cursor-pointer transition-all border-2 border-dashed ${isSekunderUploading ? 'opacity-50 pointer-events-none bg-slate-50 border-slate-300' : (sekunderFileName ? 'bg-emerald-50 border-emerald-300 text-emerald-700 hover:bg-emerald-100' : 'bg-slate-50 border-[#10b981]/50 text-[#10b981] hover:bg-[#10b981]/10 hover:border-[#10b981]')} `}>
+                  <input type="file" accept=".pdf,.docx" className="hidden" disabled={isSekunderUploading || isLoading} onChange={handleSekunderUpload} />
+                  {isSekunderUploading ? <Loader2 className="w-10 h-10 animate-spin" /> : <UploadCloud className="w-10 h-10" />}
+                  {isSekunderUploading ? 'MENGEKSTRAKSI LITERATUR...' : (sekunderFileName ? `DOKUMEN SEKUNDER: ${sekunderFileName.substring(0, 30)}...` : 'IMPORT SUMBER DATA (PDF/DOCX)')}
+                  <span className="text-[11px] font-medium text-slate-500 normal-case tracking-normal">Lampirkan arsip data yang telah terekam (BPS, Laporan Profil Jurnal, Rekam Medis, dsb).</span>
+                </label>
+              </div>
+
+              <div className="flex justify-end mt-8 pt-6 border-t border-slate-100">
+                 <button onClick={() => setCurrentStep('roadmap')} className="bg-[#1a2332] text-white px-8 py-3.5 rounded-xl font-black text-[11px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-slate-800 transition-all shadow-lg hover:shadow-xl active:scale-95 outline-none">
+                    SELESAI <CheckCircle2 className="w-4 h-4" />
+                 </button>
               </div>
             </div>
           )}
@@ -1236,5 +1825,6 @@ ${coverText}`;
         </main>
       </div>
     </div>
+    </>
   );
 }
